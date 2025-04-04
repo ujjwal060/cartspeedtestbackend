@@ -19,7 +19,7 @@ const startServer = async () => {
         app.use(cors(corsOptions));
         app.use(express.json());
 
-        await connectToDatabase('mongodb+srv://ujjwalsingh:ujjwal123@cluster0.qbl1z.mongodb.net/cartTest');
+        await connectToDatabase(config.DB_URI);
 
         app.use('/', routes);
 
