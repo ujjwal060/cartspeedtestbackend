@@ -1,0 +1,41 @@
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+
+ingester:
+  lifecycler:
+    address: 54.236.98.193
+    ring:
+      kvstore:
+        store: inmemory
+      replication_factor: 1
+  chunk_idle_period: 5m
+  chunk_retain_period: 30s
+
+schema_config:
+  configs:
+    - from: 2024-01-01
+      store: boltdb-shipper
+      object_store: filesystem
+      schema: v11
+      index:
+        prefix: index_
+        period: 24h
+
+storage_config:
+  boltdb_shipper:
+    active_index_directory: C:\Users\ABC\Downloads\loki\index
+    cache_location: C:\Users\ABC\Downloads\loki\cache
+
+compactor:
+  working_directory: C:\Users\ABC\Downloads\loki\compactor
+
+limits_config:
+  allow_structured_metadata: false  # Temporary Fix
+  reject_old_samples: true
+  reject_old_samples_max_age: 168h
+
+table_manager:
+  retention_deletes_enabled: true
+  retention_period: 336h
