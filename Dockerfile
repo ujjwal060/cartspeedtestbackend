@@ -12,7 +12,7 @@ RUN npm install --production
 COPY . .
 
 # Expose the port your app runs on
-EXPOSE 3030
+EXPOSE 9090
 
 # Define the command to run your backend server
 CMD ["node", "app.js"]

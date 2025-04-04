@@ -3,8 +3,8 @@ pipeline {
 
     environment {
         IMAGE_NAME = "docker.io/aayanindia/social-com-back"
-        CONTAINER_PORT = "3030"
-        HOST_PORT = "3030"
+        CONTAINER_PORT = "9090"
+        HOST_PORT = "9090"
         DOCKER_HUB_USERNAME = credentials('docker-hub-username')
         DOCKER_HUB_PASSWORD = credentials('docker-hub-password')
         EMAIL_RECIPIENTS = "ujjwal.singh@aayaninfotech.com"
