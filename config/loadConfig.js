@@ -4,7 +4,7 @@ import { logger } from "../utils/logger.js";
 
 dotenv.config();
 
-const ENV = process.env.NODE_ENV || "production";
+const ENV =process.env.NODE_ENV || "production";
 const REGION = process.env.AWS_REGION || "us-east-1";
 const SECRET_NAME = process.env.SECRET_NAME || "cartspeedtestbackend";
 const secretsManager = new SecretsManagerClient({ region: REGION });
