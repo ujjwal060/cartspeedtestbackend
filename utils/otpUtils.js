@@ -1,32 +1,41 @@
-import twilio from 'twilio';
+import nodemailer from 'nodemailer'
 import {logger} from "./logger.js";
+import { loadConfig } from '../config/loadConfig.js';
 
-const accountSid = process.env.twilio_account_sid;
-const authToken =  process.env.twilio_auth_token;
-const serviceId =  process.env.twilio_service_sid;
-
-const client = twilio(accountSid, authToken);
 
 const generateOTP = () => {
     return Math.floor(1000 + Math.random() * 9000).toString();
 };
 
-const sendOTP = async (mobile, otp) => {
+const config = await loadConfig();
+
+const sendEmail = async ({email, subject, body}) => {
     try {
-        await client.messages.create({
-            body: `Your verification code is ${otp}. It will expire in 10 minutes.`,
-            messagingServiceSid: serviceId,
-            to: mobile,
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: config.EMAIL_USER,
+                pass: config.EMAIL_PASS
+            }
         });
-        logger.info(`OTP sent successfully to ${mobile}`);
+
+        const mailOptions = {
+            from: config.EMAIL_USER,
+            to: email,
+            subject:subject,
+            text:body
+        };
+
+        await transporter.sendMail(mailOptions);
+        logger.info(`OTP sent successfully to ${email}`);
         return { success: true };
     } catch (error) {
-        logger.error(`Failed to send OTP to ${mobile}. Error: ${error}`);
+        logger.error(`Failed to send OTP to ${email}. Error: ${error}`);
         return { success: false, message: [error.message] };
     }
 };
 
 export {
     generateOTP,
-    sendOTP
+    sendEmail
 }

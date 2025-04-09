@@ -2,14 +2,15 @@ import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import bcrypt from 'bcryptjs';
 import UserModel from '../models/userModel.js';
-import { hashPassword} from '../utils/passwordUtils.js';
-import { generateOTP, sendOTP } from '../utils/otpUtils.js';
+import { hashPassword } from '../utils/passwordUtils.js';
+import { generateOTP, sendEmail } from '../utils/otpUtils.js';
+import { emailTamplates } from "../utils/emailTemplate.js";
 import { logger } from "../utils/logger.js";
 
 const registerUser = async (req, res) => {
     try {
         logger.info("User registration request received", { body: req.body });
-        const { name, email, mobile, state, password } = req.body;
+        const { name, email, mobile, state } = req.body;
 
         const existingUser = await UserModel.findOne({ $or: [{ email }, { mobile }] });
 
@@ -35,23 +36,21 @@ const registerUser = async (req, res) => {
             }
         }
 
-        logger.info("Hashing password for user", { email });
-        const hashedPassword = await hashPassword(password);
         const otp = generateOTP();
         const user = new UserModel({
             name,
             email,
             mobile,
             state,
-            password: hashedPassword,
             otp,
             otpExpire: new Date(Date.now() + 10 * 60 * 1000),
         });
 
         await user.save();
-        logger.info("User registered successfully, OTP generated", { email, mobile, otp });
+        logger.info("User registered successfully, OTP generated", { email, otp });
 
-        const otpSent = await sendOTP(mobile, otp);
+        const { subject, body } = emailTamplates.otpVerification(name, otp);
+        const otpSent = await sendEmail({ email, subject, body });
 
         if (!otpSent.success) {
             logger.error("OTP sending failed", { mobile, error: otpSent.message });
@@ -77,9 +76,12 @@ const registerUser = async (req, res) => {
 
 const verifyOtp = async (req, res) => {
     try {
-        const { email, otp, type } = req.body;
+        const { email, otp } = req.body;
+
+        logger.info("OTP verification request received", { email });
 
         if (!email || !otp) {
+            logger.warn("Email or OTP missing in request", { email, otp });
             return res.status(400).json({
                 status: 400,
                 message: ["Email and OTP are required"],
@@ -89,6 +91,7 @@ const verifyOtp = async (req, res) => {
         const user = await UserModel.findOne({ email });
 
         if (!user) {
+            logger.warn("User not found during OTP verification", { email });
             return res.status(404).json({
                 status: 404,
                 message: ["User not found"],
@@ -96,6 +99,7 @@ const verifyOtp = async (req, res) => {
         }
 
         if (user.otp !== otp) {
+            logger.warn("Invalid OTP entered", { email, enteredOtp: otp });
             return res.status(400).json({
                 status: 400,
                 message: ["Invalid OTP"],
@@ -104,64 +108,42 @@ const verifyOtp = async (req, res) => {
 
         const currentTime = new Date();
         if (user.otpExpire < currentTime) {
+            logger.warn("OTP expired", { email, otpExpire: user.otpExpire });
             return res.status(400).json({
                 status: 400,
                 message: ["OTP has expired"],
             });
         }
 
-        if (type === 'register') {
+        user.otp = undefined;
+        user.otpExpire = undefined;
 
-            const accessToken = jwt.sign(
-                { userId: user._id },
-                process.env.ACCESS_TOKEN_SECRET,
-                { expiresIn: "1h" }
-            );
+        await user.save();
 
-            const refreshToken = jwt.sign(
-                { userId: user._id },
-                process.env.REFRESH_TOKEN_SECRET,
-                { expiresIn: "30d" }
-            );
+        logger.info("OTP verified successfully", { email });
 
-            user.otp = null;
-            user.otpExpire = null;
-            user.refreshToken = refreshToken;
-            await user.save();
-
-            return res.status(200).json({
-                status: 200,
-                message: ["OTP verified successfully"],
-                data: {
-                    accessToken,
-                    refreshToken,
-                }
-            });
-        } else {
-            user.otp = null;
-            user.otpExpire = null;
-            await user.save();
-
-            return res.status(200).json({
-                status: 200,
-                message: ["OTP verified successfully. You can now reset your password."],
-                data: user
-            });
-        }
+        return res.status(200).json({
+            status: 200,
+            message: ["OTP verified successfully. Your account is now verified."],
+        });
 
     } catch (error) {
+        logger.error("Error during OTP verification", { error: error.message });
         return res.status(500).json({
             status: 500,
             message: [error.message],
         });
     }
-}
+};
 
 const loginUser = async (req, res) => {
     try {
         const { email, mobile, password } = req.body;
 
+        logger.info("Login request received", { email, mobile });
+
         if (!password || (!email && !mobile)) {
+            logger.warn("Login failed - Missing email/mobile or password", { email, mobile });
             return res.status(400).json({
                 status: 400,
                 message: ["Email or Mobile and password are required"],
@@ -173,6 +155,7 @@ const loginUser = async (req, res) => {
         });
 
         if (!user) {
+            logger.warn("Login failed - User not found", { email, mobile });
             return res.status(404).json({
                 status: 404,
                 message: ["User not found with the provided email or mobile. Please check the details and try again."],
@@ -182,6 +165,7 @@ const loginUser = async (req, res) => {
         const isPasswordValid = await bcrypt.compare(password, user.password);
 
         if (!isPasswordValid) {
+            logger.warn("Login failed - Incorrect password", { email, mobile });
             return res.status(400).json({
                 status: 400,
                 message: ["The password you entered is incorrect. Please check and try again."],
@@ -203,6 +187,8 @@ const loginUser = async (req, res) => {
         user.refreshToken = refreshToken;
         await user.save();
 
+        logger.info("User logged in successfully", { userId: user._id });
+
         return res.status(200).json({
             status: 200,
             message: ["Login successful"],
@@ -213,18 +199,22 @@ const loginUser = async (req, res) => {
         });
 
     } catch (error) {
+        logger.error("Error during login", { error: error.message });
         return res.status(500).json({
             status: 500,
             message: [error.message],
         });
     }
-}
+};
 
 const forgatePassword = async (req, res) => {
     try {
         const { email } = req.body;
 
+        logger.info("Forgot password request received", { email });
+
         if (!email) {
+            logger.warn("Forgot password failed - Email missing");
             return res.status(400).json({
                 status: 400,
                 message: ["Please provide a valid email address to proceed."],
@@ -233,6 +223,7 @@ const forgatePassword = async (req, res) => {
 
         const user = await UserModel.findOne({ email });
         if (!user) {
+            logger.warn("Forgot password failed - User not found", { email });
             return res.status(404).json({
                 status: 404,
                 message: ["Account not found with the provided email. Please check the email and try again."],
@@ -244,33 +235,43 @@ const forgatePassword = async (req, res) => {
         user.otpExpire = new Date(Date.now() + 10 * 60 * 1000);
         await user.save();
 
-        const otpSent = await sendOTP(user.mobile, otp);
+        logger.info("OTP generated and saved", { email, otp });
+
+        const { subject, body } = emailTamplates.otpVerification(user.name, otp);
+        const otpSent = await sendEmail({ email, subject, body });
 
         if (!otpSent.success) {
+            logger.error("Failed to send OTP", { email, error: otpSent.message });
             return res.status(500).json({
                 status: 500,
                 message: otpSent.message,
             });
         }
 
+        logger.info("OTP sent successfully", { email });
+
         return res.status(200).json({
             status: 200,
-            message: ["OTP has been sent to your mobile."],
+            message: ["OTP has been sent to your Email."],
         });
 
     } catch (error) {
+        logger.error("Error in forgot password", { error: error.message });
         return res.status(500).json({
             status: 500,
             message: [error.message],
         });
     }
-}
+};
 
 const setPassword = async (req, res) => {
     try {
         const { password, email } = req.body;
 
+        logger.info("Set password request received", { email });
+
         if (!email || !password) {
+            logger.warn("Set password failed - Missing email or password");
             return res.status(400).json({
                 status: 400,
                 message: ["Please provide email, and password to proceed."],
@@ -279,9 +280,19 @@ const setPassword = async (req, res) => {
 
         const user = await UserModel.findOne({ email });
 
+        if (!user) {
+            logger.warn("Set password failed - User not found", { email });
+            return res.status(404).json({
+                status: 404,
+                message: ["User not found"],
+            });
+        }
+
         const hashedPassword = await hashPassword(password);
         user.password = hashedPassword;
         await user.save();
+
+        logger.info("Password updated successfully", { email });
 
         return res.status(200).json({
             status: 200,
@@ -289,12 +300,13 @@ const setPassword = async (req, res) => {
         });
 
     } catch (error) {
+        logger.error("Error while setting password", { error: error.message });
         return res.status(500).json({
             status: 500,
             message: [error.message],
         });
     }
-}
+};
 
 const resendOtp = async (req, res) => {
     try {
@@ -323,7 +335,8 @@ const resendOtp = async (req, res) => {
         user.otpExpire = new Date(Date.now() + 10 * 60 * 1000);
         await user.save();
 
-        const otpSent = await sendOTP(user.mobile, otp);
+        const { subject, body } = emailTamplates.otpVerification(user.name, otp);
+        const otpSent = await sendEmail({ email, subject, body });
 
         if (!otpSent.success) {
             return res.status(500).json({
@@ -334,7 +347,7 @@ const resendOtp = async (req, res) => {
 
         return res.status(200).json({
             status: 200,
-            message: ["A new OTP has been sent to your registered mobile number"],
+            message: ["A new OTP has been sent to your registered Email"],
         });
 
     } catch (error) {
@@ -379,12 +392,23 @@ const changePassword = async (req, res) => {
         const { userId } = req.user;
         const { password } = req.body;
 
+        logger.info("Change password request received", { userId });
+
         const user = await UserModel.findById(userId);
 
-        const hashedPassword = await hashPassword(password);
+        if (!user) {
+            logger.warn("User not found for password change", { userId });
+            return res.status(404).json({
+                status: 404,
+                message: ["User not found"],
+            });
+        }
 
+        const hashedPassword = await hashPassword(password);
         user.password = hashedPassword;
         await user.save();
+
+        logger.info("Password changed successfully", { userId });
 
         return res.status(200).json({
             status: 200,
@@ -392,12 +416,13 @@ const changePassword = async (req, res) => {
         });
 
     } catch (error) {
+        logger.error("Error in changePassword", { error: error.message });
         return res.status(500).json({
             status: 500,
             message: [error.message],
         });
     }
-}
+};
 
 const getProfileById = async (req, res) => {
     try {
@@ -499,7 +524,7 @@ const updateProfile = async (req, res) => {
             }
         }
         const updateResult = await UserModel.updateOne(
-            { _id:userId },
+            { _id: userId },
             { $set: updateFields }
         );
 
