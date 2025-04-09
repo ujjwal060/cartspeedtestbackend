@@ -5,7 +5,7 @@ server:
 
 ingester:
   lifecycler:
-    address: 54.236.98.193
+    address: 3.223.253.106
     ring:
       kvstore:
         store: inmemory
