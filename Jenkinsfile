@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "docker.io/aayanindia/social-com-back"
+        IMAGE_NAME = "docker.io/aayanindia/cart-back"
         CONTAINER_PORT = "9090"
         HOST_PORT = "9090"
         DOCKER_HUB_USERNAME = credentials('docker-hub-username')
