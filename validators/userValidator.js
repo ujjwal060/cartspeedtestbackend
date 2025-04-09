@@ -27,13 +27,6 @@ const userValidationSchema = Joi.object({
         'string.empty': 'State is required.',
         'any.required': 'State is required.',
     }),
-    password: Joi.string().min(6).max(15).required().messages({
-        'string.base': 'Password must be a string.',
-        'string.empty': 'Password is required.',
-        'string.min': 'Password must be at least 6 characters.',
-        'string.max': 'Password cannot exceed 15 characters.',
-        'any.required': 'Password is required.',
-    }),
     otp: Joi.string().optional().allow('').messages({
         'string.base': 'OTP must be a string.',
     }),
