@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer'
-import {logger} from "./logger.js";
+import { logger } from "./logger.js";
 import { loadConfig } from '../config/loadConfig.js';
 
 
@@ -7,10 +7,11 @@ const generateOTP = () => {
     return Math.floor(1000 + Math.random() * 9000).toString();
 };
 
-const config = await loadConfig();
 
-const sendEmail = async ({email, subject, body}) => {
+const sendEmail = async ({ email, subject, body }) => {
     try {
+        const config = await loadConfig();
+
         const transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: {
@@ -22,8 +23,8 @@ const sendEmail = async ({email, subject, body}) => {
         const mailOptions = {
             from: config.EMAIL_USER,
             to: email,
-            subject:subject,
-            text:body
+            subject: subject,
+            text: body
         };
 
         await transporter.sendMail(mailOptions);
