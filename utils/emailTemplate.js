@@ -11,6 +11,21 @@ const emailTamplates = {
         Thank you,
         `
     }),
+    sendAdminCurd: (name, email, password) => ({
+        subject: 'You Have Been Added as an Admin',
+        body: `
+        Hi ${name},
+        
+        You have been added as an admin. Below are your login credentials:
+        
+        Email: ${email}
+        Password: ${password}
+        
+        Please change your password after logging in.
+        
+        Thank you,
+        `
+    }),
 }
 
 export {
