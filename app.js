@@ -3,7 +3,7 @@ import cors from 'cors';
 import { loadConfig } from './config/loadConfig.js';
 import connectToDatabase from './config/db.js';
 import { logger } from "./utils/logger.js";
-import routes from './routes/index.js';
+import routes from './usersManagement/routes/index.js';
 
 const startServer = async () => {
     try {

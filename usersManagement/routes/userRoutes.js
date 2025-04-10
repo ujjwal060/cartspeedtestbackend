@@ -1,12 +1,12 @@
 import express from 'express';
-import { validateRequest } from '../middleware/validationMiddleware.js';
+import { validateRequest } from '../../middleware/validationMiddleware.js';
 import {
     userValidationSchema,
     loginValidationSchema,
     setPasswordValidationSchema,
     userValidationSchemaOTP,
     updateProfileSchema
-} from '../validators/userValidator.js';
+} from '../../validators/userValidator.js';
 import {
     registerUser,
     loginUser,
@@ -22,7 +22,7 @@ import {
 import {
     authenticateUser,
     refreshToken
-} from '../middleware/authMiddleware.js';
+} from '../../middleware/authMiddleware.js';
 
 
 const router = express.Router();

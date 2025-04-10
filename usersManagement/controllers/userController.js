@@ -2,10 +2,10 @@ import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import bcrypt from 'bcryptjs';
 import UserModel from '../models/userModel.js';
-import { hashPassword } from '../utils/passwordUtils.js';
-import { generateOTP, sendEmail } from '../utils/otpUtils.js';
-import { emailTamplates } from "../utils/emailTemplate.js";
-import { logger } from "../utils/logger.js";
+import { hashPassword } from '../../utils/passwordUtils.js';
+import { generateOTP, sendEmail } from '../../utils/otpUtils.js';
+import { emailTamplates } from "../../utils/emailTemplate.js";
+import { logger } from "../../utils/logger.js";
 
 const registerUser = async (req, res) => {
     try {
@@ -557,7 +557,6 @@ const updateProfile = async (req, res) => {
         });
     }
 }
-
 
 export {
     registerUser,
