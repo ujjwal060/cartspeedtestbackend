@@ -6,6 +6,8 @@ import { hashPassword } from '../../utils/passwordUtils.js';
 import { generateOTP, sendEmail } from '../../utils/otpUtils.js';
 import { emailTamplates } from "../../utils/emailTemplate.js";
 import { logger } from "../../utils/logger.js";
+import { loadConfig } from "../../config/loadConfig.js";
+
 
 const registerUser = async (req, res) => {
     try {
@@ -138,6 +140,8 @@ const verifyOtp = async (req, res) => {
 
 const loginUser = async (req, res) => {
     try {
+        const config = await loadConfig();
+
         const { email, mobile, password } = req.body;
 
         logger.info("Login request received", { email, mobile });
@@ -174,13 +178,13 @@ const loginUser = async (req, res) => {
 
         const accessToken = jwt.sign(
             { userid: user._id },
-            process.env.ACCESS_TOKEN_SECRET,
+            config.ACCESS_TOKEN_SECRET,
             { expiresIn: "1h" }
         );
 
         const refreshToken = jwt.sign(
             { userId: user._id },
-            process.env.REFRESH_TOKEN_SECRET,
+            config.REFRESH_TOKEN_SECRET,
             { expiresIn: "30d" }
         );
 
@@ -439,8 +443,6 @@ const getProfileById = async (req, res) => {
                 password: 0,
                 otp: 0,
                 otpExpire: 0,
-                refreshToken: 0,
-                referrals: 0,
                 __v: 0
             }
         })
