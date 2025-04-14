@@ -104,9 +104,15 @@ const login = async (req, res) => {
         }
 
         const token = jwt.sign(
-            { id: admin._id, email: admin.email },
+            { id: admin._id, email: admin.email,role:admin.role },
             config.ACCESS_TOKEN_SECRET,
-            { expiresIn: '1d' }
+            { expiresIn: '1m' }
+        );
+
+        const refreshToken = jwt.sign(
+            { id: admin._id, email: admin.email,role:admin.role },
+            config.REFRESH_TOKEN_SECRET,
+            { expiresIn: '7d' }
         );
         logger.info(`Admin login successful - ID: ${admin._id}, Email: ${email}`);
 
@@ -115,6 +121,7 @@ const login = async (req, res) => {
             message: ["Login successful"],
             data: {
                 token,
+                refreshToken,
                 id: admin._id,
             }
         });
