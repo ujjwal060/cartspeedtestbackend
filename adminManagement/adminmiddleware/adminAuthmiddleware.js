@@ -23,6 +23,7 @@ const verifyToken = async (req, res) => {
             valid: true,
             userId: decoded.userId,
         });
+        
     } catch (error) {
         logger.error(`Token verification failed. Error: ${error.message}`);
 
@@ -79,4 +80,31 @@ const refreshToken = async (req, res) => {
     }
 };
 
-export { verifyToken, refreshToken };
+const verifyTokenMiddleware = async (req, res, next) => {
+    const config = await loadConfig();
+    const authHeader = req.headers.authorization;
+  
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(400).json({
+        status: 400,
+        message: ["Token is required in Authorization header."],
+      });
+    }
+  
+    const token = authHeader.split(" ")[1];
+  
+    try {
+      const decoded = jwt.verify(token, config.ACCESS_TOKEN_SECRET);
+      req.user = decoded;
+      next();
+    } catch (error) {
+      logger.error(`Token verification failed. Error: ${error.message}`);
+      return res.status(401).json({
+        status: 401,
+        valid: false,
+        message: [error.message],
+      });
+    }
+  };
+
+export { verifyToken, refreshToken, verifyTokenMiddleware };

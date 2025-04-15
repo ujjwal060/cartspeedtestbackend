@@ -52,7 +52,8 @@ const loadConfig = async () => {
     AWS_REGION: process.env.AWS_REGION || 'us-east-1',
     SECRET_NAME: process.env.SECRET_NAME || 'cartspeedtestbackend',
     EMAIL_USER:process.env.EMAIL_USER,
-    EMAIL_PASS:process.env.EMAIL_PASS
+    EMAIL_PASS:process.env.EMAIL_PASS,
+    S3_BUCKET:process.env.S3_BUCKET
   }
 };
 
