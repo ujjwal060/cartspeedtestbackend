@@ -23,7 +23,7 @@ const authenticateUser = async (req, res, next) => {
         req.user = {
             userId: decoded.userid,
         };
-        logger.info(`User authenticated. User ID: ${decoded.userId}`);
+        logger.info(`User authenticated. User ID: ${decoded.userid}`);
         next();
     } catch (error) {
         logger.error(`Token verification failed. Error: ${error.message}`);
@@ -75,5 +75,5 @@ const refreshToken = async (req, res) => {
 
 export {
     authenticateUser,
-    refreshToken
+    refreshToken,
 };
