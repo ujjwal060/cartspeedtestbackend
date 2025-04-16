@@ -46,21 +46,29 @@ const uploadToS3 = async (req, res, next) => {
     if (!req.files || !req.files.image) {
       return next();
     }
-    const file = req.files.image;
 
-    const files = Array.isArray(file) ? file : [file];
+    const mediaFiles = Array.isArray(req.files.image) ? req.files.image : [req.files.image];
     const fileLocations = [];
 
-    for (const file of files) {
+    const allowedTypes = [
+      'image/jpeg', 'image/png', 'image/webp',
+      'video/mp4', 'video/quicktime', 'video/x-matroska'
+    ];
+
+    for (const file of mediaFiles) {
+      
+      if (!allowedTypes.includes(file.mimetype)) {
+        return res.status(400).send(`Unsupported file type: ${file.mimetype}`);
+      }
       const params = {
-        Bucket: config.AWS_S3_BUCKET_NAME,
+        Bucket: config.S3_BUCKET,
         Key: `${Date.now()}-${file.name}`,
         Body: file.data,
         ContentType: file.mimetype,
       };
 
       await s3.putObject(params);
-      const fileUrl = `https://${config.AWS_S3_BUCKET_NAME}.s3.${config.AWS_REGION}.amazonaws.com/${params.Key}`;
+      const fileUrl = `https://${config.S3_BUCKET}.s3.${config.AWS_REGION}.amazonaws.com/${params.Key}`;
       fileLocations.push(fileUrl);
     }
 

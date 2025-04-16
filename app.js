@@ -1,4 +1,5 @@
 import express from 'express';
+import fileUpload from 'express-fileupload';
 import cors from 'cors';
 import { loadConfig } from './config/loadConfig.js';
 import connectToDatabase from './config/db.js';
@@ -19,6 +20,7 @@ const startServer = async () => {
 
         app.use(cors(corsOptions));
         app.use(express.json());
+        app.use(fileUpload());
 
         await connectToDatabase(config.DB_URI);
 

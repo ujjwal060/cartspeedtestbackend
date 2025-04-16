@@ -4,8 +4,9 @@ import { logger } from "../../utils/logger.js";
 
 const addVideos = async (req, res) => {
     try {
-        const { title, url, description, locationState } = req.body;
-        const uploadedBy = req.user._id;
+        const { title, description, locationState } = req.body;
+        const uploadedBy = req.user.id;
+        const url=req.fileLocations[0];
 
         if (!title || !url || !locationState || !uploadedBy) {
             return res.status(400).json({
@@ -31,7 +32,7 @@ const addVideos = async (req, res) => {
         });
 
     } catch (error) {
-        logger.error(`admin videos Error`, { error });
+        logger.error(`addVideos Error`, error.message );
         return res.status(500).json({
             status: 500,
             message: [error.message],
@@ -39,6 +40,18 @@ const addVideos = async (req, res) => {
     }
 }
 
+const getAllVideos=async(req,res)=>{
+    try{
+
+    }catch(error){
+        logger.error(`getAllVideos Error`, error.message );
+        return res.status(500).json({
+            status: 500,
+            message: [error.message],
+        });
+    }
+}
 export {
-    addVideos
+    addVideos,
+    getAllVideos
 }
