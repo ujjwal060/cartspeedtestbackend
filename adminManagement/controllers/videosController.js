@@ -3,7 +3,7 @@ import { logger } from "../../utils/logger.js";
 
 const addVideos = async (req, res) => {
     try {
-        const { title, description,state } = req.body;
+        const { title, description, state } = req.body;
         const uploadedBy = req.user.id;
         const url = req.fileLocations[0];
 
@@ -19,7 +19,7 @@ const addVideos = async (req, res) => {
             title,
             url,
             description,
-            locationState:state,
+            locationState: state,
             uploadedBy
         });
 
@@ -102,16 +102,17 @@ const getAllVideos = async (req, res) => {
             }
         });
 
-        aggregation.push({
-            $sort: {
-                [sortField]: parseInt(sortBy) === 1 ? 1 : -1
-            }
-        });
+        if (sortField) {
+            aggregation.push({
+                $sort: {
+                    [sortField]: parseInt(sortBy) === 1 ? 1 : -1
+                }
+            });
+        }
 
         aggregation.push({
             $facet: {
                 data: [
-                    { $sort: { [sortField]: parseInt(sortBy) === 1 ? 1 : -1 } },
                     { $skip: parsedOffset },
                     { $limit: parsedLimit }
                 ],
