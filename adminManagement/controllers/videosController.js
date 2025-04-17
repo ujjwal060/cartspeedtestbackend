@@ -3,11 +3,11 @@ import { logger } from "../../utils/logger.js";
 
 const addVideos = async (req, res) => {
     try {
-        const { title, description, locationState } = req.body;
+        const { title, description,state } = req.body;
         const uploadedBy = req.user.id;
         const url = req.fileLocations[0];
 
-        if (!title || !url || !locationState || !uploadedBy) {
+        if (!title || !url || !state || !uploadedBy) {
             logger.warn('Missing required fields in addVideos');
             return res.status(400).json({
                 status: 400,
@@ -19,7 +19,7 @@ const addVideos = async (req, res) => {
             title,
             url,
             description,
-            locationState,
+            locationState:state,
             uploadedBy
         });
 
