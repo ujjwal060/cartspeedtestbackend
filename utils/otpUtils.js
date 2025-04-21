@@ -36,7 +36,7 @@ const sendEmail = async ({ email, subject, body }) => {
     }
 };
 
-export {
+export{
     generateOTP,
     sendEmail
 }

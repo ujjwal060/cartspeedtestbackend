@@ -73,7 +73,7 @@ const getAllVideos = async (req, res) => {
         if (filters?.views) {
             aggregation.push({
                 $match: {
-                    views: filters?.views
+                    views:parseInt(filters?.views)
                 }
             })
         };
