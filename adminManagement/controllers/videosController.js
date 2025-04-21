@@ -19,7 +19,7 @@ const addVideos = async (req, res) => {
             title,
             url,
             description,
-            locationState: locationState,
+            locationState,
             uploadedBy
         });
 
