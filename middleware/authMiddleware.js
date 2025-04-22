@@ -1,9 +1,11 @@
 import jwt from "jsonwebtoken";
 import UserModel from '../usersManagement/models/userModel.js';
+import { loadConfig } from '../config/loadConfig.js';
 import {logger} from '../utils/logger.js';
 
 
-const authenticateUser = (req, res, next) => {
+const authenticateUser = async (req, res, next) => {
+    const config = await loadConfig();
     const authHeader = req.headers.authorization;
     logger.error("Unauthorized access attempt. Missing or invalid token.");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -16,12 +18,12 @@ const authenticateUser = (req, res, next) => {
     const token = authHeader.split(" ")[1];
 
     try {
-        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        const decoded = jwt.verify(token, config.ACCESS_TOKEN_SECRET);
 
         req.user = {
             userId: decoded.userid,
         };
-        logger.info(`User authenticated. User ID: ${decoded.userId}`);
+        logger.info(`User authenticated. User ID: ${decoded.userid}`);
         next();
     } catch (error) {
         logger.error(`Token verification failed. Error: ${error.message}`);
@@ -34,9 +36,10 @@ const authenticateUser = (req, res, next) => {
 
 const refreshToken = async (req, res) => {
     try {
+        const config = await loadConfig();
         const token=req.body.refreshToken;
         
-        const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+        const decoded = jwt.verify(token,config.REFRESH_TOKEN_SECRET);
 
         const user = await UserModel.findOne({ _id: decoded.userId, refreshToken:token });
 
@@ -50,7 +53,7 @@ const refreshToken = async (req, res) => {
 
         const newAccessToken = jwt.sign(
             { userId: user.id, email: user.email, mobile: user.mobile },
-            process.env.ACCESS_TOKEN_SECRET,
+            config.ACCESS_TOKEN_SECRET,
             { expiresIn: "1h" }
         );
 
@@ -72,5 +75,5 @@ const refreshToken = async (req, res) => {
 
 export {
     authenticateUser,
-    refreshToken
+    refreshToken,
 };

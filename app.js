@@ -1,9 +1,11 @@
 import express from 'express';
+import fileUpload from 'express-fileupload';
 import cors from 'cors';
 import { loadConfig } from './config/loadConfig.js';
 import connectToDatabase from './config/db.js';
 import { logger } from "./utils/logger.js";
-import routes from './usersManagement/routes/index.js';
+import userRoutes from './usersManagement/routes/index.js';
+import adminRoutes from './adminManagement/routes/adminRoutes.js'
 
 const startServer = async () => {
     try {
@@ -18,10 +20,12 @@ const startServer = async () => {
 
         app.use(cors(corsOptions));
         app.use(express.json());
+        app.use(fileUpload());
 
         await connectToDatabase(config.DB_URI);
 
-        app.use('/', routes);
+        app.use('/api', userRoutes);
+        app.use('/api',adminRoutes);
 
         const PORT = config.PORT || 9090;
         app.listen(PORT, () => {
