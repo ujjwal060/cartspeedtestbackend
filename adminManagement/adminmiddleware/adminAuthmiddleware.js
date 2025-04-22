@@ -61,7 +61,7 @@ const refreshToken = async (req, res) => {
         const user = await adminModel.findOne({ userId: decoded.userId });
 
         const newAccessToken = jwt.sign(
-            { userId: decoded.userId,role:user.role,email:user.email },
+            { id: user._id,role:user.role,email:user.email },
             config.ACCESS_TOKEN_SECRET,
             { expiresIn: '1h' }
         );
