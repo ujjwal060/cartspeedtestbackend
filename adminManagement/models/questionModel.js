@@ -8,7 +8,7 @@ const questionSchema = new mongoose.Schema({
       isCorrect: { type: Boolean, default: false },
     },
   ],
-  level: { type: String, enum: ['easy', 'medium', 'hard'], required: true },
+  level: { type: String, enum: ['Easy', 'Medium', 'Hard'], required: true },
   state: { type: String, required: true },
 },{timestamps: true});
 
