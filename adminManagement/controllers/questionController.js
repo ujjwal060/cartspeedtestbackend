@@ -59,6 +59,10 @@ const getAllQuestions = async (req, res) => {
         }
 
         aggregation.push({
+            $sort: { createdAt: -1 }
+        });
+
+        aggregation.push({
             $facet: {
                 data: [
                     { $skip: parsedOffset },
@@ -68,7 +72,7 @@ const getAllQuestions = async (req, res) => {
                     { $count: 'count' }
                 ]
             }
-        })
+        });
 
         const [result] = await QuestionModel.aggregate(aggregation);
         const total = result.totalCount[0]?.count || 0;
