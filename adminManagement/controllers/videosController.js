@@ -106,7 +106,8 @@ const getAllVideos = async (req, res) => {
                     name: 1,
                     role: 1
                 },
-                uploadDate: 1
+                uploadDate: 1,
+                level:1
             }
         });
 
