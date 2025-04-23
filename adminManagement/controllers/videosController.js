@@ -3,11 +3,11 @@ import { logger } from "../../utils/logger.js";
 
 const addVideos = async (req, res) => {
     try {
-        const { title, description, state } = req.body;
+        const { title, description, state,level } = req.body;
         const uploadedBy = req.user.id;
         const url = req.fileLocations[0];
 
-        if (!title || !url || !state || !uploadedBy) {
+        if (!title || !url || !state || !uploadedBy || !level) {
             logger.warn('Missing required fields in addVideos');
             return res.status(400).json({
                 status: 400,
@@ -20,7 +20,8 @@ const addVideos = async (req, res) => {
             url,
             description,
             locationState:state,
-            uploadedBy
+            uploadedBy,
+            level
         });
 
         const savedVideo = await newVideo.save();
@@ -66,6 +67,13 @@ const getAllVideos = async (req, res) => {
                         $regex: filters.locationState,
                         $options: 'i'
                     }
+                }
+            })
+        };
+        if (filters?.level) {
+            aggregation.push({
+                $match: {
+                    level:  filters.level,
                 }
             })
         };

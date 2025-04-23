@@ -12,6 +12,7 @@ const videoSchema = new mongoose.Schema({
   description: {
     type: String
   },
+  level: { type: String, enum: ['Easy', 'Medium', 'Hard'], required: true },
   locationState: {
     type: String,
     required: true
