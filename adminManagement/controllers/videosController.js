@@ -77,15 +77,6 @@ const getAllVideos = async (req, res) => {
                 }
             })
         };
-
-        // if (filters?.views) {
-        //     aggregation.push({
-        //         $match: {
-        //             views:parseInt(filters?.views)
-        //         }
-        //     })
-        // };
-
         aggregation.push({
             $lookup: {
                 from: 'admins',
