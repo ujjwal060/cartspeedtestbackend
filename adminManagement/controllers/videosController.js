@@ -78,13 +78,13 @@ const getAllVideos = async (req, res) => {
             })
         };
 
-        if (filters?.views) {
-            aggregation.push({
-                $match: {
-                    views:parseInt(filters?.views)
-                }
-            })
-        };
+        // if (filters?.views) {
+        //     aggregation.push({
+        //         $match: {
+        //             views:parseInt(filters?.views)
+        //         }
+        //     })
+        // };
 
         aggregation.push({
             $lookup: {
@@ -101,7 +101,7 @@ const getAllVideos = async (req, res) => {
                 description: 1,
                 locationState: 1,
                 url: 1,
-                views: 1,
+                isActive: 1,
                 uploadedBy: {
                     name: 1,
                     role: 1
@@ -180,8 +180,42 @@ const deleteVideos = async (req, res) => {
     }
 };
 
+const videosStatus=async(req,res)=>{
+    try{
+        const { id } = req.params;
+        
+        const video = await videoModel.findById(id);
+        if (!video) {
+            logger.warn(`videosStatus: Video with ID ${id} not found`);
+            return res.status(404).json({
+                status: 404,
+                message: ['Video not found'],
+            });
+        }
+
+        video.isActive = !video.isActive;
+        await video.save();
+
+        logger.info(`videosStatus: Video status updated to ${video.isActive ? 'active' : 'inactive'} for ID ${id}`);
+
+        return res.status(200).json({
+            status: 200,
+            message: [`Video status updated to ${video.isActive ? 'active' : 'inactive'}`],
+            data: video
+        });
+
+    }catch(error){
+        logger.error(`videosStatus Error`, error.message);
+        return res.status(500).json({
+            status: 500,
+            message: [error.message],
+        });
+    }
+}
+
 export {
     addVideos,
     getAllVideos,
-    deleteVideos
+    deleteVideos,
+    videosStatus
 }

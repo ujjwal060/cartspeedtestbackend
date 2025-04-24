@@ -22,9 +22,9 @@ const videoSchema = new mongoose.Schema({
     ref: 'admin',
     required: true
   },
-  views: {
-    type: Number,
-    default: 0
+  isActive: {
+    type: Boolean,
+    default: true
   },
   uploadDate: {
     type: Date,
