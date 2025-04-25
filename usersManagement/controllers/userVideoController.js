@@ -9,6 +9,11 @@ const getVideos = async (req, res) => {
         let aggregation = [];
 
         aggregation.push({
+            $match:{
+                isActive:true
+            }
+        });
+        aggregation.push({
             $facet: {
                 data: [
                     { $skip: parsedOffset },

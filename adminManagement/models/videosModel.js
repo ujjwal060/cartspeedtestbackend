@@ -12,6 +12,7 @@ const videoSchema = new mongoose.Schema({
   description: {
     type: String
   },
+  level: { type: String, enum: ['Easy', 'Medium', 'Hard'], required: true },
   locationState: {
     type: String,
     required: true
@@ -21,9 +22,9 @@ const videoSchema = new mongoose.Schema({
     ref: 'admin',
     required: true
   },
-  views: {
-    type: Number,
-    default: 0
+  isActive: {
+    type: Boolean,
+    default: true
   },
   uploadDate: {
     type: Date,
