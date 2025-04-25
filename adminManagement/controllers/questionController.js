@@ -4,8 +4,8 @@ import { logger } from "../../utils/logger.js";
 
 const createQuestion = async (req, res) => {
     try {
-        const { state, level, question, options,videoId } = req.body;
-        if (!options || !level || !state || !question) {
+        const {level, question, options,videoId,state } = req.body;
+            if (!options || !level || !videoId|| !question) {
             logger.warn('Missing required fields in createQuestion');
             return res.status(400).json({
                 status: 400,
@@ -17,8 +17,8 @@ const createQuestion = async (req, res) => {
             level,
             question,
             options,
-            state,
-            videoId
+            videoId,
+            state
         });
 
         await newQuestion.save();
