@@ -3,7 +3,7 @@ import { logger } from "../../utils/logger.js";
 
 const createQuestion = async (req, res) => {
     try {
-        const { state, level, question, options } = req.body;
+        const { state, level, question, options,videoId } = req.body;
         if (!options || !level || !state || !question) {
             logger.warn('Missing required fields in createQuestion');
             return res.status(400).json({
@@ -16,7 +16,8 @@ const createQuestion = async (req, res) => {
             level,
             question,
             options,
-            state
+            state,
+            videoId
         });
 
         await newQuestion.save();
@@ -54,6 +55,13 @@ const getAllQuestions = async (req, res) => {
             aggregation.push({
                 $match: {
                     state: filters?.state
+                }
+            })
+        }
+        if (filters?.videoId) {
+            aggregation.push({
+                $match: {
+                    videoId: filters?.videoId
                 }
             })
         }
