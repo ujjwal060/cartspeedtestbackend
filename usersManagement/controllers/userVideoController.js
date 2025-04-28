@@ -1,4 +1,4 @@
-import videosModel from '../../adminManagement/models/videosModel.js';
+import videosModel from '../../models/videosModel.js';
 import { logger } from '../../utils/logger.js';
 
 const getVideos = async (req, res) => {

@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import bcrypt from 'bcryptjs';
-import UserModel from '../models/userModel.js';
+import UserModel from '../../models/userModel.js';
 import { hashPassword } from '../../utils/passwordUtils.js';
 import { generateOTP, sendEmail } from '../../utils/otpUtils.js';
 import { emailTamplates } from "../../utils/emailTemplate.js";

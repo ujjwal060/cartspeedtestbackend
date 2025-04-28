@@ -1,5 +1,5 @@
-import videoModel from "../models/videosModel.js";
-import questionModel from "../models/questionModel.js"
+import videoModel from "../../models/videosModel.js";
+import questionModel from "../../models/questionModel.js"
 import { logger } from "../../utils/logger.js";
 
 const addVideos = async (req, res) => {
