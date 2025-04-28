@@ -1,4 +1,5 @@
 import videoModel from "../models/videosModel.js";
+import questionModel from "../models/questionModel.js"
 import { logger } from "../../utils/logger.js";
 
 const addVideos = async (req, res) => {
@@ -154,7 +155,7 @@ const deleteVideos = async (req, res) => {
                 message: ['Video not found.'],
             });
         }
-
+        await questionModel.deleteMany({ videoId });
         logger.info(`Video deleted: ${videoId} by user: ${req.user.id}`);
         return res.status(200).json({
             status: 200,

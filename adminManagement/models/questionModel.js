@@ -10,6 +10,11 @@ const questionSchema = new mongoose.Schema({
   ],
   level: { type: String, enum: ['Easy', 'Medium', 'Hard'], required: true },
   state: { type: String, required: true },
+  videoId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Video',
+    required: true
+  }
 },{timestamps: true});
 
 const questionModel = mongoose.model('Question', questionSchema);

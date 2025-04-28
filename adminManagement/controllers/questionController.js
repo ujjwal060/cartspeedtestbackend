@@ -1,10 +1,12 @@
 import QuestionModel from "../models/questionModel.js";
+import videoModel from "../models/videosModel.js"
 import { logger } from "../../utils/logger.js";
+import { ObjectId } from 'bson';
 
 const createQuestion = async (req, res) => {
     try {
-        const { state, level, question, options } = req.body;
-        if (!options || !level || !state || !question) {
+        const {level, question, options,videoId,state } = req.body;
+            if (!options || !level || !videoId|| !question) {
             logger.warn('Missing required fields in createQuestion');
             return res.status(400).json({
                 status: 400,
@@ -16,6 +18,7 @@ const createQuestion = async (req, res) => {
             level,
             question,
             options,
+            videoId,
             state
         });
 
@@ -57,6 +60,44 @@ const getAllQuestions = async (req, res) => {
                 }
             })
         }
+        if (filters?.videoId) {
+            aggregation.push({
+                $match: {
+                    videoId: new ObjectId(filters?.videoId)
+                }
+            })
+        }
+
+        aggregation.push({
+            $lookup: {
+                from: 'videos',
+                localField: 'videoId',
+                foreignField: '_id',
+                as: 'videoData'
+            }
+        });
+        
+        aggregation.push({
+            $unwind: {
+                path: '$videoData',
+                preserveNullAndEmptyArrays: true
+            }
+        });
+
+        aggregation.push({
+            $project: {
+                level: 1,
+                state: 1,
+                videoId: 1,
+                createdAt: 1,
+                question:1,
+                options:1,
+                videoData: {
+                    url: '$videoData.url',
+                    title: '$videoData.title'
+                }
+            }
+        });
 
         aggregation.push({
             $sort: { createdAt: -1 }
@@ -127,8 +168,54 @@ const updateQuestion = async (req, res) => {
     }
 }
 
+const getVideosForDropdown=async(req,res)=>{
+     try {
+            const {level} = req.body;
+            let aggregation = [];
+    
+            if (level) {
+                aggregation.push({
+                    $match: {
+                        level:level,
+                    }
+                })
+            };
+            aggregation.push({
+                $match:{
+                    isActive:true
+                }
+            })
+            aggregation.push({
+                $project: {
+                    _id:1,
+                    title: 1,
+                    locationState: 1,
+                    isActive: 1,
+                    level:1
+                }
+            });
+    
+            const result = await videoModel.aggregate(aggregation);
+          
+            logger.info(`Fetched ${result.length} videos for user: ${req.user.id}`);
+    
+            return res.status(200).json({
+                status: 200,
+                message: ['Videos fetched successfully.'],
+                data: result,
+            });
+        } catch (error) {
+            logger.error(`getAllVideos Error`, error.message);
+            return res.status(500).json({
+                status: 500,
+                message: [error.message],
+            });
+        }
+}
+
 export {
     createQuestion,
     getAllQuestions,
-    updateQuestion
+    updateQuestion,
+    getVideosForDropdown
 }
