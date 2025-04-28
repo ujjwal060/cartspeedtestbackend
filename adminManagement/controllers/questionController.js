@@ -1,6 +1,7 @@
 import QuestionModel from "../models/questionModel.js";
 import videoModel from "../models/videosModel.js"
 import { logger } from "../../utils/logger.js";
+import { ObjectId } from 'bson';
 
 const createQuestion = async (req, res) => {
     try {
@@ -62,7 +63,7 @@ const getAllQuestions = async (req, res) => {
         if (filters?.videoId) {
             aggregation.push({
                 $match: {
-                    videoId: filters?.videoId
+                    videoId: new ObjectId(filters?.videoId)
                 }
             })
         }
