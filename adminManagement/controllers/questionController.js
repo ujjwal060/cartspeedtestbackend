@@ -68,6 +68,37 @@ const getAllQuestions = async (req, res) => {
         }
 
         aggregation.push({
+            $lookup: {
+                from: 'videos',
+                localField: 'videoId',
+                foreignField: '_id',
+                as: 'videoData'
+            }
+        });
+        
+        aggregation.push({
+            $unwind: {
+                path: '$videoData',
+                preserveNullAndEmptyArrays: true
+            }
+        });
+
+        aggregation.push({
+            $project: {
+                level: 1,
+                state: 1,
+                videoId: 1,
+                createdAt: 1,
+                question:1,
+                options:1,
+                videoData: {
+                    url: '$videoData.url',
+                    title: '$videoData.title'
+                }
+            }
+        });
+
+        aggregation.push({
             $sort: { createdAt: -1 }
         });
 
