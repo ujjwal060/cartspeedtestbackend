@@ -12,7 +12,7 @@ import { loadConfig } from "../../config/loadConfig.js";
 const registerUser = async (req, res) => {
     try {
         logger.info("User registration request received", { body: req.body });
-        const { name, email, mobile, state } = req.body;
+        const { name, email, mobile, address, latitude, longitude } = req.body;
 
         const existingUser = await UserModel.findOne({ $or: [{ email }, { mobile }] });
 
@@ -43,7 +43,9 @@ const registerUser = async (req, res) => {
             name,
             email,
             mobile,
-            state,
+            address,
+            latitude,
+            longitude,
             otp,
             otpExpire: new Date(Date.now() + 10 * 60 * 1000),
         });
@@ -127,7 +129,7 @@ const verifyOtp = async (req, res) => {
         return res.status(200).json({
             status: 200,
             message: ["OTP verified successfully. Your account is now verified."],
-            data:user
+            data: user
         });
 
     } catch (error) {
