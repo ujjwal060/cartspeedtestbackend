@@ -12,7 +12,7 @@ import { loadConfig } from "../../config/loadConfig.js";
 const registerUser = async (req, res) => {
     try {
         logger.info("User registration request received", { body: req.body });
-        const { name, email, mobile, address, latitude, longitude } = req.body;
+        const { name, email, mobile, address} = req.body;
 
         const existingUser = await UserModel.findOne({ $or: [{ email }, { mobile }] });
 
@@ -44,8 +44,6 @@ const registerUser = async (req, res) => {
             email,
             mobile,
             address,
-            latitude,
-            longitude,
             otp,
             otpExpire: new Date(Date.now() + 10 * 60 * 1000),
         });
