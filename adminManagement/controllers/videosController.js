@@ -139,7 +139,7 @@ const getAllVideos = async (req, res) => {
         const formatted = result.data.map(item => ({
             location: item.location,
             locationName: item.locationName,
-            section: item.section,
+            section: `section 0${item.section}`,
             sectionTitle: item.sectionTitle,
             sectionDurationTime: item.sectionDurationTime,
             video: item.video,
