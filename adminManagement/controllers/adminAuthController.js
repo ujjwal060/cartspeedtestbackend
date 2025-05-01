@@ -12,7 +12,7 @@ import { loadConfig } from "../../config/loadConfig.js";
 
 const adminRegister = async (req, res) => {
     try {
-        const { name, email, locationName, latitude, longitude, password, role,mobile } = req.body;
+        const { name, email, locationName, latitude, longitude, password, role, mobile } = req.body;
         logger.info("Incoming request for admin registration", { name, email, role });
 
         if (role === 'superadmin') {
@@ -455,6 +455,57 @@ const getAllAdmins = async (req, res) => {
         const parsedOffset = parseInt(offset);
         const parsedLimit = parseInt(limit);
         let aggregation = [];
+
+        aggregation.push({
+            $lookup: {
+                from: "locations",
+                localField: "location",
+                foreignField: "_id",
+                as: "locationDetails"
+            }
+        });
+
+        aggregation.push({
+            $unwind: {
+                path: "$locationDetails",
+                preserveNullAndEmptyArrays: true
+            }
+        });
+
+        if (filters?.name) {
+            aggregation.push({
+                $match: {
+                    name: {
+                        $regex: filters?.name,
+                        $options: 'i'
+                    }
+                }
+            })
+        };
+
+        if (filters?.email) {
+            aggregation.push({
+                $match: {
+                    email: filters?.email
+                }
+            })
+        };
+
+        if (filters?.mobile) {
+            aggregation.push({
+                $match: {
+                    email: filters?.email
+                }
+            })
+        };
+
+        if (filters?.locationName) {
+            aggregation.push({
+                $match: {
+                    "locationDetails.name": { $regex: filters.locationName, $options: "i" }
+                }
+            });
+        }
 
 
 
