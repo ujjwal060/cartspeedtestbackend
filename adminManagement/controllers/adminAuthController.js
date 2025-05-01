@@ -472,6 +472,12 @@ const getAllAdmins = async (req, res) => {
             }
         });
 
+        aggregation.push({
+            $match:{
+                role:'admin'
+            }
+        })
+
         if (filters?.name) {
             aggregation.push({
                 $match: {
