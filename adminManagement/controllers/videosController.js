@@ -66,59 +66,50 @@ const getAllVideos = async (req, res) => {
         const { filters, sortField, sortBy, offset, limit } = req.body;
         const parsedOffset = parseInt(offset);
         const parsedLimit = parseInt(limit);
+        const adminId = req.user.id;
         let aggregation = [];
 
-        if (filters?.title) {
-            aggregation.push({
-                $match: {
-                    title: {
-                        $regex: filters.title,
-                        $options: 'i'
-                    }
-                }
-            })
-        };
-
-        if (filters?.locationState) {
-            aggregation.push({
-                $match: {
-                    locationState: {
-                        $regex: filters.locationState,
-                        $options: 'i'
-                    }
-                }
-            })
-        };
-        if (filters?.level) {
-            aggregation.push({
-                $match: {
-                    level: filters.level,
-                }
-            })
-        };
         aggregation.push({
-            $lookup: {
-                from: 'admins',
-                localField: 'uploadedBy',
-                foreignField: '_id',
-                as: 'uploadedBy'
+            $match: {
+                admin: new mongoose.Types.ObjectId(adminId),
             }
         });
-        aggregation.push({ $unwind: '$uploadedBy' });
+
+        aggregation.push({
+            $lookup: {
+                from: 'locations',
+                localField: 'location',
+                foreignField: '_id',
+                as: 'locationInfo',
+            },
+        });
+        aggregation.push({
+            $unwind: {
+                path: '$locationInfo',
+                preserveNullAndEmptyArrays: true,
+            },
+        });
+        aggregation.push({
+            $unwind: {
+                path: '$sections',
+                preserveNullAndEmptyArrays: false,
+            },
+        })
+        aggregation.push({
+            $unwind: {
+                path: '$sections.videos',
+                preserveNullAndEmptyArrays: false,
+            },
+        })
         aggregation.push({
             $project: {
-                title: 1,
-                description: 1,
-                locationState: 1,
-                url: 1,
-                isActive: 1,
-                uploadedBy: {
-                    name: 1,
-                    role: 1
-                },
-                uploadDate: 1,
-                level: 1
-            }
+                location: '$location',
+                locationName: '$locationInfo.name',
+                section: '$sections.sectionNumber',
+                sectionTitle: '$sections.title',
+                sectionDurationTime: '$sections.durationTime',
+                video: '$sections.videos',
+            },
         });
 
         if (sortField) {
@@ -141,16 +132,28 @@ const getAllVideos = async (req, res) => {
             }
         })
 
-        const [result] = await videoModel.aggregate(aggregation);
+        const [result] = await LocationVideo.aggregate(aggregation);
         const total = result.totalCount[0]?.count || 0;
         logger.info(`Fetched ${result.data.length} videos for user: ${req.user.id}`);
+
+        const formatted = result.data.map(item => ({
+            location: item.location,
+            locationName: item.locationName,
+            section: item.section,
+            sectionTitle: item.sectionTitle,
+            sectionDurationTime: item.sectionDurationTime,
+            video: item.video,
+          }));
+      
+          logger.info(`Fetched ${formatted.length} videos for admin: ${adminId}`);
 
         return res.status(200).json({
             status: 200,
             message: ['Videos fetched successfully.'],
-            data: result.data,
+            data: formatted,
             total
         });
+
     } catch (error) {
         logger.error(`getAllVideos Error`, error.message);
         return res.status(500).json({
