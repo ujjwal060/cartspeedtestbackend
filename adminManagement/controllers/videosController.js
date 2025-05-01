@@ -142,9 +142,9 @@ const getAllVideos = async (req, res) => {
             section: `section 0${item.section}`,
             sectionTitle: item.sectionTitle,
             video: item.video,
-          }));
-      
-          logger.info(`Fetched ${formatted.length} videos for admin: ${adminId}`);
+        }));
+
+        logger.info(`Fetched ${formatted.length} videos for admin: ${adminId}`);
 
         return res.status(200).json({
             status: 200,
@@ -166,21 +166,30 @@ const deleteVideos = async (req, res) => {
     try {
         const { videoId } = req.params;
 
-        const deletedVideo = await videoModel.findByIdAndDelete(videoId);
+        const locationVideo = await LocationVideo.findOneAndUpdate(
+            { 'sections.videos._id': videoId },
+            {
+                $pull: { 'sections.$[].videos': { _id: videoId } },
+            },
+            { new: true }
+        );
 
-        if (!deletedVideo) {
+        if (!locationVideo) {
             logger.warn(`Video not found with ID: ${videoId}`);
             return res.status(404).json({
                 status: 404,
                 message: ['Video not found.'],
             });
         }
-        await questionModel.deleteMany({ videoId });
-        logger.info(`Video deleted: ${videoId} by user: ${req.user.id}`);
+
+        const deletedQuestions = await questionModel.deleteMany({ videoId });
+        logger.info(`Deleted ${deletedQuestions.deletedCount} questions for video ID: ${videoId}`);
+        logger.info(`Video deleted from section: ${videoId} by admin: ${req.user?.id || 'Unknown'}`);
+
         return res.status(200).json({
             status: 200,
-            message: ['Video deleted successfully.'],
-            data: deletedVideo
+            message: ['Video and related questions deleted successfully.'],
+            data: locationVideo,
         });
 
     } catch (error) {
@@ -196,24 +205,39 @@ const videosStatus = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const video = await videoModel.findById(id);
-        if (!video) {
-            logger.warn(`videosStatus: Video with ID ${id} not found`);
+        const videoDoc = await LocationVideo.findOne(
+            { 'sections.videos._id': id },
+            { 'sections.videos.$': 1 }
+        );
+        
+        if (!videoDoc || !videoDoc.sections?.[0]?.videos?.[0]) {
             return res.status(404).json({
                 status: 404,
                 message: ['Video not found'],
             });
         }
-
-        video.isActive = !video.isActive;
-        await video.save();
-
-        logger.info(`videosStatus: Video status updated to ${video.isActive ? 'active' : 'inactive'} for ID ${id}`);
-
+        
+        const currentStatus = videoDoc.sections[0].videos[0].isActive;
+        const newStatus = !currentStatus;
+        
+        const result = await LocationVideo.updateOne(
+            { 'sections.videos._id': id },
+            {
+                $set: {
+                    'sections.$[section].videos.$[video].isActive': newStatus
+                }
+            },
+            {
+                arrayFilters: [
+                    { 'section.videos._id': id },
+                    { 'video._id': id }
+                ]
+            }
+        );
+        
         return res.status(200).json({
             status: 200,
-            message: [`Video status updated to ${video.isActive ? 'active' : 'inactive'}`],
-            data: video
+            message: [`Video status updated to ${newStatus ? 'active' : 'inactive'}`]
         });
 
     } catch (error) {
