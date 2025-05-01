@@ -135,6 +135,7 @@ const login = async (req, res) => {
                 token,
                 refreshToken,
                 id: admin._id,
+                role:admin.role
             }
         });
 
