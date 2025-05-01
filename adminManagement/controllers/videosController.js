@@ -141,7 +141,6 @@ const getAllVideos = async (req, res) => {
             locationName: item.locationName,
             section: `section 0${item.section}`,
             sectionTitle: item.sectionTitle,
-            sectionDurationTime: item.sectionDurationTime,
             video: item.video,
           }));
       
