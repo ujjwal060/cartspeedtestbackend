@@ -1,14 +1,17 @@
-import videoModel from "../../models/videosModel.js";
+import mongoose from "mongoose";
 import questionModel from "../../models/questionModel.js"
+import LocationVideo from "../../models/videosModel.js";
+import adminModel from "../../models/adminModel.js";
 import { logger } from "../../utils/logger.js";
+import { getVideoDurationInSeconds } from 'get-video-duration';
 
 const addVideos = async (req, res) => {
     try {
-        const { title, description, state,level } = req.body;
-        const uploadedBy = req.user.id;
+        const { title, description, sectionNumber, sectionTitle } = req.body;
+        const adminId = req.user.id;
         const url = req.fileLocations[0];
 
-        if (!title || !url || !state || !uploadedBy || !level) {
+        if (!title || !url || !sectionNumber || !sectionTitle || !adminId) {
             logger.warn('Missing required fields in addVideos');
             return res.status(400).json({
                 status: 400,
@@ -16,22 +19,37 @@ const addVideos = async (req, res) => {
             });
         }
 
-        const newVideo = new videoModel({
+        const location = await adminModel.findById(adminId);
+        if (!location) {
+            return res.status(404).json({
+                status: 404,
+                message: ['No location found for this admin.'],
+            });
+        }
+        const locationId = location._id;
+        const durationTime = await getVideoDuration(url);
+        const videoData = {
             title,
             url,
             description,
-            locationState:state,
-            uploadedBy,
-            level
-        });
+            durationTime,
+            isActive: true,
+        };
 
-        const savedVideo = await newVideo.save();
-        logger.info(`Video added successfully by user: ${uploadedBy}`);
+        let locationVideo = await LocationVideo.findOne({ admin: adminId, location: locationId });
+        if (!locationVideo) {
+            locationVideo = new LocationVideo({
+                admin: adminId,
+                location: locationId,
+                sections: [],
+            });
+        }
+
+        await locationVideo.addOrUpdateVideo(parseInt(sectionNumber), videoData, sectionTitle);
 
         return res.status(201).json({
             status: 201,
-            message: ['Video uploaded successfully.'],
-            data: savedVideo
+            message: ['Video uploaded and added to section successfully.'],
         });
 
     } catch (error) {
@@ -74,7 +92,7 @@ const getAllVideos = async (req, res) => {
         if (filters?.level) {
             aggregation.push({
                 $match: {
-                    level:  filters.level,
+                    level: filters.level,
                 }
             })
         };
@@ -99,7 +117,7 @@ const getAllVideos = async (req, res) => {
                     role: 1
                 },
                 uploadDate: 1,
-                level:1
+                level: 1
             }
         });
 
@@ -172,10 +190,10 @@ const deleteVideos = async (req, res) => {
     }
 };
 
-const videosStatus=async(req,res)=>{
-    try{
+const videosStatus = async (req, res) => {
+    try {
         const { id } = req.params;
-        
+
         const video = await videoModel.findById(id);
         if (!video) {
             logger.warn(`videosStatus: Video with ID ${id} not found`);
@@ -196,7 +214,7 @@ const videosStatus=async(req,res)=>{
             data: video
         });
 
-    }catch(error){
+    } catch (error) {
         logger.error(`videosStatus Error`, error.message);
         return res.status(500).json({
             status: 500,
@@ -205,9 +223,68 @@ const videosStatus=async(req,res)=>{
     }
 }
 
+const checkExistingSection = async (req, res) => {
+    try {
+        const { adminId } = req.params;
+        const { sectionNumber } = req.body;
+        let aggregation = [];
+
+        if (!adminId || !sectionNumber) {
+            logger.warn('checkSectionTitle: Missing adminId or sectionNumber');
+            return res.status(400).json({
+                status: 400,
+                message: ['adminId and sectionNumber are required.'],
+            });
+        }
+
+        aggregation.push({
+            $match: {
+                admin: new mongoose.Types.ObjectId(adminId)
+            }
+        })
+
+        aggregation.push({
+            $match: {
+                'sections.sectionNumber': parseInt(sectionNumber)
+            }
+        })
+        aggregation.push({
+            $project: {
+                _id: 0,
+                title: '$sections.title'
+            }
+        })
+
+        const [result] = await LocationVideo.aggregate(aggregation);
+        const title = result?.title || '';
+
+        logger.info(`checkExistingSection: Found section title "${title}" for admin ${adminId}`);
+
+        return res.status(200).json({
+            status: 200,
+            message: ['Section title fetched successfully.'],
+            data: { title }
+        });
+    } catch (error) {
+        logger.error(`checkSectionTitle Error`, error.message);
+        return res.status(500).json({
+            status: 500,
+            message: [error.message],
+        });
+    }
+}
+
+const getVideoDuration = async (url) => {
+    const duration = await getVideoDurationInSeconds(url);
+    const minutes = Math.floor(duration / 60);
+    const seconds = Math.floor(duration % 60);
+    return `${minutes}m ${seconds}s`;
+};
+
 export {
     addVideos,
     getAllVideos,
     deleteVideos,
-    videosStatus
+    videosStatus,
+    checkExistingSection
 }
