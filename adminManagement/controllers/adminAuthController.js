@@ -522,6 +522,12 @@ const getAllAdmins = async (req, res) => {
         }
 
         aggregation.push({
+            $project: {
+                password: 0 
+            }
+        });
+
+        aggregation.push({
             $facet: {
                 data: [
                     { $skip: parsedOffset },
