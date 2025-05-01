@@ -13,7 +13,8 @@ import {
     verifyOtp,
     setPassword,
     getProfileById,
-    toggleAdminStatus
+    toggleAdminStatus,
+    getAllAdmins
 } from '../controllers/adminAuthController.js';
 
 const router = express.Router();
@@ -26,5 +27,7 @@ router.post('/setPass', validateRequest(setPasswordValidationSchema), setPasswor
 router.get('/profile/:id', getProfileById);
 router.get('/profile/:id', getProfileById);
 router.put('/status:/adminId',toggleAdminStatus);
+router.post('/getAllAdmins',getAllAdmins);
+
 
 export default router;

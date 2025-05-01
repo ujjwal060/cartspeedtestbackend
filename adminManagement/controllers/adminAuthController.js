@@ -507,8 +507,36 @@ const getAllAdmins = async (req, res) => {
             });
         }
 
+        if (sortField) {
+            aggregation.push({
+                $sort: {
+                    [sortField]: parseInt(sortBy) === 1 ? 1 : -1
+                }
+            });
+        }
 
+        aggregation.push({
+            $facet: {
+                data: [
+                    { $skip: parsedOffset },
+                    { $limit: parsedLimit }
+                ],
+                totalCount: [
+                    { $count: 'count' }
+                ]
+            }
+        });
 
+        const [result] = await adminModel.aggregate(aggregation);
+        const total = result.totalCount[0]?.count || 0;
+        logger.info(`admin-Fetched-users ${result.data.length} users`);
+
+        return res.status(200).json({
+            status: 200,
+            message: ['Videos fetched successfully.'],
+            data: result.data,
+            total
+        });
     } catch (error) {
         logger.error("Error fetching admins", { error: error.message });
         return res.status(500).json({
@@ -525,5 +553,6 @@ export {
     verifyOtp,
     setPassword,
     getProfileById,
-    toggleAdminStatus
+    toggleAdminStatus,
+    getAllAdmins
 };
