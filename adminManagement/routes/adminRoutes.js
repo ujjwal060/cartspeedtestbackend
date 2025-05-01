@@ -9,7 +9,7 @@ import dashboardRoutes from "./dashboardRoutes.js"
 
 const router = express.Router();
 
-router.use('/admin',verifyTokenMiddleware, adminAuthRoutes);
+router.use('/admin', adminAuthRoutes);
 router.use('/admin/auth',verifyTokenRoutes);
 router.use('/admin/video',verifyTokenMiddleware,videoRoutes);
 router.use('/admin/QA',verifyTokenMiddleware,questionRoutes);
