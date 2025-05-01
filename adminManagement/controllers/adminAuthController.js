@@ -6,13 +6,13 @@ import { logger } from "../../utils/logger.js";
 import { hashPassword } from '../../utils/passwordUtils.js';
 import { generateOTP, sendEmail } from '../../utils/otpUtils.js';
 import { emailTamplates } from "../../utils/emailTemplate.js";
+import locationModel from "../../models/locationModel.js";
 import { loadConfig } from "../../config/loadConfig.js";
-
 
 
 const adminRegister = async (req, res) => {
     try {
-        const { name, email, state, password, role } = req.body;
+        const { name, email, locationName, latitude, longitude, password, role,mobile } = req.body;
         logger.info("Incoming request for admin registration", { name, email, role });
 
         if (role === 'superadmin') {
@@ -37,13 +37,25 @@ const adminRegister = async (req, res) => {
             }
         }
 
+        const result = await checkAndSaveLocation({ locationName, latitude, longitude });
+        if (!result.success) {
+            logger.warn("Location validation failed", { message: result.message });
+            return res.status(result.status).json({
+                status: result.status,
+                message: result.message
+            });
+        }
+
+        const locationId = result.locationId;
+
         const hashedPassword = await hashPassword(password);
         const newAdmin = new adminModel({
             name,
             email,
-            state,
+            location: locationId,
             password: hashedPassword,
             role,
+            mobile
         });
 
         await newAdmin.save();
@@ -104,13 +116,13 @@ const login = async (req, res) => {
         }
 
         const token = jwt.sign(
-            { id: admin._id, email: admin.email,role:admin.role },
+            { id: admin._id, email: admin.email, role: admin.role },
             config.ACCESS_TOKEN_SECRET,
             { expiresIn: '1h' }
         );
 
         const refreshToken = jwt.sign(
-            { id: admin._id, email: admin.email,role:admin.role },
+            { id: admin._id, email: admin.email, role: admin.role },
             config.REFRESH_TOKEN_SECRET,
             { expiresIn: '7d' }
         );
@@ -338,11 +350,129 @@ const getProfileById = async (req, res) => {
     }
 };
 
+const checkAndSaveLocation = async ({ locationName, latitude, longitude }) => {
+    const MILES_TO_METERS = 1609.34;
+
+    try {
+        if (!locationName || latitude === undefined || longitude === undefined) {
+            return {
+                success: false,
+                status: 400,
+                message: ['Location name, latitude, and longitude are required']
+            };
+        }
+
+        const nearbyLocations = await locationModel.aggregate([
+            {
+                $geoNear: {
+                    near: { type: 'Point', coordinates: [longitude, latitude] },
+                    distanceField: 'distance',
+                    spherical: true,
+                    maxDistance: 50 * MILES_TO_METERS
+                }
+            }
+        ]);
+
+        const locationIdsNearby = nearbyLocations.map(loc => loc._id);
+
+        const nearbyAdmin = await adminModel.findOne({
+            location: { $in: locationIdsNearby },
+            role: 'admin'
+        });
+
+        if (nearbyAdmin) {
+            return {
+                success: false,
+                status: 400,
+                message: ['An admin already exists within 50 miles of this location']
+            };
+        }
+
+        const newLocation = new locationModel({
+            name: locationName,
+            coordinates: {
+                type: 'Point',
+                coordinates: [longitude, latitude]
+            }
+        });
+
+        await newLocation.save();
+
+        return {
+            success: true,
+            locationId: newLocation._id
+        };
+    } catch (err) {
+        return {
+            success: false,
+            status: 500,
+            message: [err.message || 'Something went wrong while saving location']
+        };
+    }
+};
+
+const toggleAdminStatus = async (req, res) => {
+    try {
+        const { adminId } = req.params;
+
+        logger.info("Request received to toggle admin status", { adminId });
+
+        const admin = await adminModel.findById(adminId);
+        if (!admin) {
+            logger.warn("Admin not found while toggling status", { adminId });
+            return res.status(404).json({
+                status: 404,
+                message: ["Admin not found"]
+            });
+        }
+
+        const previousStatus = admin.isActive;
+        admin.isActive = !admin.isActive;
+        await admin.save();
+
+        logger.info("Admin isActive status updated", {
+            adminId,
+            from: previousStatus,
+            to: admin.isActive
+        });
+
+        res.status(200).json({
+            status: 200,
+            message: [`Admin is now ${admin.isActive ? 'active' : 'inactive'}`]
+        });
+    } catch (error) {
+        logger.error("Error toggling admin isActive status", { error: error.message });
+        res.status(500).json({
+            status: 500,
+            message: [error.message]
+        });
+    }
+};
+
+const getAllAdmins = async (req, res) => {
+    try {
+        const { filters, sortField, sortBy, offset, limit } = req.body;
+        const parsedOffset = parseInt(offset);
+        const parsedLimit = parseInt(limit);
+        let aggregation = [];
+
+
+
+    } catch (error) {
+        logger.error("Error fetching admins", { error: error.message });
+        return res.status(500).json({
+            status: 500,
+            message: [error.message]
+        });
+    }
+}
+
 export {
     adminRegister,
     login,
     forgatePassword,
     verifyOtp,
     setPassword,
-    getProfileById
+    getProfileById,
+    toggleAdminStatus
 };

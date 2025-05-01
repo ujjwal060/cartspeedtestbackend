@@ -12,7 +12,8 @@ import {
     forgatePassword,
     verifyOtp,
     setPassword,
-    getProfileById
+    getProfileById,
+    toggleAdminStatus
 } from '../controllers/adminAuthController.js';
 
 const router = express.Router();
@@ -23,6 +24,7 @@ router.post('/forgote', forgatePassword);
 router.post('/verifyotp',validateRequest(adminValidationSchemaOTP), verifyOtp);
 router.post('/setPass', validateRequest(setPasswordValidationSchema), setPassword);
 router.get('/profile/:id', getProfileById);
-
+router.get('/profile/:id', getProfileById);
+router.put('/status:/adminId',toggleAdminStatus);
 
 export default router;
