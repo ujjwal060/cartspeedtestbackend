@@ -27,12 +27,13 @@ const addVideos = async (req, res) => {
             });
         }
         const locationId = location.location;
-        // const durationTime = await getVideoDuration(url);
+        const durationTime = 0
+        // await getVideoDuration(url);
         const videoData = {
             title,
             url,
             description,
-            // durationTime,
+            durationTime,
             isActive: true,
         };
 
