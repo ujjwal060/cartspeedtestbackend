@@ -26,7 +26,7 @@ const addVideos = async (req, res) => {
                 message: ['No location found for this admin.'],
             });
         }
-        const locationId = location._id;
+        const locationId = location.location;
         const durationTime = await getVideoDuration(url);
         const videoData = {
             title,
@@ -103,7 +103,6 @@ const getAllVideos = async (req, res) => {
         })
         aggregation.push({
             $project: {
-                location: '$location',
                 locationName: '$locationInfo.name',
                 section: '$sections.sectionNumber',
                 sectionTitle: '$sections.title',
@@ -137,7 +136,6 @@ const getAllVideos = async (req, res) => {
         logger.info(`Fetched ${result.data.length} videos for user: ${req.user.id}`);
 
         const formatted = result.data.map(item => ({
-            location: item.location,
             locationName: item.locationName,
             section: `section 0${item.section}`,
             sectionTitle: item.sectionTitle,
@@ -282,7 +280,7 @@ const checkExistingSection = async (req, res) => {
         })
 
         const [result] = await LocationVideo.aggregate(aggregation);
-        const title = result?.title || '';
+        const title = result?.title[0] || '';
 
         logger.info(`checkExistingSection: Found section title "${title}" for admin ${adminId}`);
 
