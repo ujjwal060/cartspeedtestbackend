@@ -26,6 +26,8 @@ const getAwsCredentials = async () => {
 const getS3Client = async () => {
   try {
     const credentials = await getAwsCredentials();
+    console.log(credentials);
+    
     return new S3({
       credentials: {
         accessKeyId: credentials.accessKeyId,
@@ -41,6 +43,8 @@ const getS3Client = async () => {
 
 const uploadToS3 = async (req, res, next) => {
   const s3 = await getS3Client();
+  console.log(123,s3);
+  
 
   try {
     if (!req.files || !req.files.image) {
