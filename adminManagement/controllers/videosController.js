@@ -10,6 +10,7 @@ const addVideos = async (req, res) => {
         const { title, description, sectionNumber, sectionTitle } = req.body;
         const adminId = req.user.id;
         const url = req.fileLocations[0];
+        console.log(111,title,222, description,333, sectionNumber,444, sectionTitle)
 
         if (!title || !url || !sectionNumber || !sectionTitle || !adminId) {
             logger.warn('Missing required fields in addVideos');
