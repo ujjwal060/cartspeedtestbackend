@@ -6,9 +6,7 @@ import { logger } from "../../utils/logger.js";
 import { getVideoDurationInSeconds } from 'get-video-duration';
 
 const addVideos = async (req, res) => {
-    try {
-        console.log(111);
-        
+    try {        
         const { title, description, sectionNumber, sectionTitle } = req.body;
         const adminId = req.user.id;
         const url = req.fileLocations[0];
@@ -21,6 +19,8 @@ const addVideos = async (req, res) => {
             });
         }
 
+        console.log(111);
+
         const location = await adminModel.findById(adminId);
         if (!location) {
             return res.status(404).json({
@@ -30,6 +30,7 @@ const addVideos = async (req, res) => {
         }
         const locationId = location.location;
         const durationTime = await getVideoDuration(url);
+        console.log(222,durationTime);
         const videoData = {
             title,
             url,
