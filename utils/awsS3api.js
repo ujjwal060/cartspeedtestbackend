@@ -13,7 +13,7 @@ const getAwsCredentials = async () => {
 
     if (data.SecretString) {
       const secret = JSON.parse(data.SecretString);
-      console.log(111,data)
+      console.log(111,secret)
       return {
         accessKeyId: secret.AWS_ACCESS_KEY_ID,
         secretAccessKey: secret.AWS_SECRET_ACCESS_KEY,
