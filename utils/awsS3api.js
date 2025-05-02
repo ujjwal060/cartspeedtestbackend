@@ -13,7 +13,6 @@ const getAwsCredentials = async () => {
 
     if (data.SecretString) {
       const secret = JSON.parse(data.SecretString);
-      console.log(111,secret)
       return {
         accessKeyId: secret.AWS_ACCESS_KEY_ID,
         secretAccessKey: secret.AWS_SECRET_ACCESS_KEY,
@@ -76,6 +75,7 @@ const uploadToS3 = async (req, res, next) => {
     req.fileLocations = fileLocations;
     next();
   } catch (uploadError) {
+    console.log(uploadError);
     return res.status(500).send(uploadError.message);
   }
 };
