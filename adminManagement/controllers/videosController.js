@@ -239,8 +239,8 @@ const checkExistingSection = async (req, res) => {
 }
 
 const getVideoDuration = async (url) => {
-    console.log(111);
     const duration = await getVideoDurationInSeconds(url);
+    console.log(111);
     const minutes = Math.floor(duration / 60);
     const seconds = Math.floor(duration % 60);
     return `${minutes}m ${seconds}s`;
