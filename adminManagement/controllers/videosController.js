@@ -28,7 +28,6 @@ const addVideos = async (req, res) => {
         }
         const locationId = location.location;
         const durationTime = await getVideoDuration(url);
-        console.log(222,durationTime);
         const videoData = {
             title,
             url,
@@ -240,7 +239,6 @@ const checkExistingSection = async (req, res) => {
 
 const getVideoDuration = async (url) => {
     const duration = await getVideoDurationInSeconds(url);
-    console.log(111);
     const minutes = Math.floor(duration / 60);
     const seconds = Math.floor(duration % 60);
     return `${minutes}m ${seconds}s`;
