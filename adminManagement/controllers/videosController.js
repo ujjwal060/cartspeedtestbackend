@@ -32,7 +32,7 @@ const addVideos = async (req, res) => {
             title,
             url,
             description,
-            durationTime,
+            // durationTime,
             isActive: true,
         };
 
