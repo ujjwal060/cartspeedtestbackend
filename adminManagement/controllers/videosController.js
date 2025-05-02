@@ -27,7 +27,7 @@ const addVideos = async (req, res) => {
             });
         }
         const locationId = location.location;
-        const durationTime = 0;
+        const durationTime ='1m 27s' ;
         // await getVideoDuration(url);
         const videoData = {
             title,
