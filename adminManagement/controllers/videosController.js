@@ -19,8 +19,6 @@ const addVideos = async (req, res) => {
             });
         }
 
-        console.log(111);
-
         const location = await adminModel.findById(adminId);
         if (!location) {
             return res.status(404).json({
@@ -241,6 +239,7 @@ const checkExistingSection = async (req, res) => {
 }
 
 const getVideoDuration = async (url) => {
+    console.log(111);
     const duration = await getVideoDurationInSeconds(url);
     const minutes = Math.floor(duration / 60);
     const seconds = Math.floor(duration % 60);
