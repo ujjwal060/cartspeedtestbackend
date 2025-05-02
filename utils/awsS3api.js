@@ -48,7 +48,8 @@ const uploadToS3 = async (req, res, next) => {
     }
 
     const mediaFiles = Array.isArray(req.files.image) ? req.files.image : [req.files.image];
-    const fileLocations = [];
+    console.log(11,mediaFiles)
+    const fileLocations = [mediaFiles];
 
     const allowedTypes = [
       'image/jpeg', 'image/png', 'image/webp',
