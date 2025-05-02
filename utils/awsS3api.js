@@ -13,6 +13,7 @@ const getAwsCredentials = async () => {
 
     if (data.SecretString) {
       const secret = JSON.parse(data.SecretString);
+      console.log(111,data)
       return {
         accessKeyId: secret.AWS_ACCESS_KEY_ID,
         secretAccessKey: secret.AWS_SECRET_ACCESS_KEY,
@@ -26,8 +27,6 @@ const getAwsCredentials = async () => {
 const getS3Client = async () => {
   try {
     const credentials = await getAwsCredentials();
-    console.log(credentials);
-    
     return new S3({
       credentials: {
         accessKeyId: credentials.accessKeyId,
@@ -43,8 +42,6 @@ const getS3Client = async () => {
 
 const uploadToS3 = async (req, res, next) => {
   const s3 = await getS3Client();
-  console.log(123,s3);
-  
 
   try {
     if (!req.files || !req.files.image) {
@@ -52,7 +49,6 @@ const uploadToS3 = async (req, res, next) => {
     }
 
     const mediaFiles = Array.isArray(req.files.image) ? req.files.image : [req.files.image];
-    console.log(11,mediaFiles)
     const fileLocations = [mediaFiles];
 
     const allowedTypes = [
@@ -80,7 +76,6 @@ const uploadToS3 = async (req, res, next) => {
     req.fileLocations = fileLocations;
     next();
   } catch (uploadError) {
-    console.log(222,uploadError)
     return res.status(500).send(uploadError.message);
   }
 };
