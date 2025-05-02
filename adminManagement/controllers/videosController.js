@@ -7,6 +7,8 @@ import { getVideoDurationInSeconds } from 'get-video-duration';
 
 const addVideos = async (req, res) => {
     try {
+        console.log(111);
+        
         const { title, description, sectionNumber, sectionTitle } = req.body;
         const adminId = req.user.id;
         const url = req.fileLocations[0];

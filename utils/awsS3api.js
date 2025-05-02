@@ -69,6 +69,7 @@ const uploadToS3 = async (req, res, next) => {
 
       await s3.putObject(params);
       const fileUrl = `https://${config.S3_BUCKET}.s3.${config.AWS_REGION}.amazonaws.com/${params.Key}`;
+    console.log(fileUrl);
       fileLocations.push(fileUrl);
     }
 
