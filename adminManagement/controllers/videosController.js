@@ -64,75 +64,14 @@ const addVideos = async (req, res) => {
 const getAllVideos = async (req, res) => {
     try {
         const { filters, sortField, sortBy, offset, limit } = req.body;
-        const parsedOffset = parseInt(offset);
-        const parsedLimit = parseInt(limit);
         const adminId = req.user.id;
-        let aggregation = [];
 
-        aggregation.push({
-            $match: {
-                admin: new mongoose.Types.ObjectId(adminId),
-            }
-        });
-
-        aggregation.push({
-            $lookup: {
-                from: 'locations',
-                localField: 'location',
-                foreignField: '_id',
-                as: 'locationInfo',
-            },
-        });
-        aggregation.push({
-            $unwind: {
-                path: '$locationInfo',
-                preserveNullAndEmptyArrays: true,
-            },
-        });
-        aggregation.push({
-            $unwind: {
-                path: '$sections',
-                preserveNullAndEmptyArrays: false,
-            },
-        })
-        aggregation.push({
-            $unwind: {
-                path: '$sections.videos',
-                preserveNullAndEmptyArrays: false,
-            },
-        })
-        aggregation.push({
-            $project: {
-                locationName: '$locationInfo.name',
-                section: '$sections.sectionNumber',
-                sectionTitle: '$sections.title',
-                sectionDurationTime: '$sections.durationTime',
-                video: '$sections.videos',
-            },
-        });
-
-        if (sortField) {
-            aggregation.push({
-                $sort: {
-                    [sortField]: parseInt(sortBy) === 1 ? 1 : -1
-                }
-            });
-        }
-
-        aggregation.push({
-            $facet: {
-                data: [
-                    { $skip: parsedOffset },
-                    { $limit: parsedLimit }
-                ],
-                totalCount: [
-                    { $count: 'count' }
-                ]
-            }
-        })
+        let aggregation = getallAggregation({ filters, adminId, sortField, sortBy, offset, limit })
 
         const [result] = await LocationVideo.aggregate(aggregation);
+
         const total = result.totalCount[0]?.count || 0;
+        
         logger.info(`Fetched ${result.data.length} videos for user: ${req.user.id}`);
 
         const formatted = result.data.map(item => ({
@@ -207,17 +146,17 @@ const videosStatus = async (req, res) => {
             { 'sections.videos._id': id },
             { 'sections.videos.$': 1 }
         );
-        
+
         if (!videoDoc || !videoDoc.sections?.[0]?.videos?.[0]) {
             return res.status(404).json({
                 status: 404,
                 message: ['Video not found'],
             });
         }
-        
+
         const currentStatus = videoDoc.sections[0].videos[0].isActive;
         const newStatus = !currentStatus;
-        
+
         const result = await LocationVideo.updateOne(
             { 'sections.videos._id': id },
             {
@@ -232,7 +171,7 @@ const videosStatus = async (req, res) => {
                 ]
             }
         );
-        
+
         return res.status(200).json({
             status: 200,
             message: [`Video status updated to ${newStatus ? 'active' : 'inactive'}`]
@@ -303,6 +242,80 @@ const getVideoDuration = async (url) => {
     const minutes = Math.floor(duration / 60);
     const seconds = Math.floor(duration % 60);
     return `${minutes}m ${seconds}s`;
+};
+
+const getallAggregation = ({ filters, adminId, sortField, sortBy, offset, limit }) => {
+    const parsedOffset = parseInt(offset);
+    const parsedLimit = parseInt(limit);
+    const aggregation = [];
+
+    aggregation.push({
+        $match: {
+            admin: new mongoose.Types.ObjectId(adminId),
+        }
+    });
+
+    aggregation.push({
+        $lookup: {
+            from: 'locations',
+            localField: 'location',
+            foreignField: '_id',
+            as: 'locationInfo',
+        },
+    });
+
+    aggregation.push({
+        $unwind: {
+            path: '$locationInfo',
+            preserveNullAndEmptyArrays: true,
+        },
+    });
+
+    aggregation.push({
+        $unwind: {
+            path: '$sections',
+            preserveNullAndEmptyArrays: false,
+        },
+    });
+
+    aggregation.push({
+        $unwind: {
+            path: '$sections.videos',
+            preserveNullAndEmptyArrays: false,
+        },
+    });
+
+    aggregation.push({
+        $project: {
+            locationName: '$locationInfo.name',
+            section: '$sections.sectionNumber',
+            sectionTitle: '$sections.title',
+            sectionDurationTime: '$sections.durationTime',
+            video: '$sections.videos',
+        },
+    });
+
+    if (sortField) {
+        aggregation.push({
+            $sort: {
+                [sortField]: parseInt(sortBy) === 1 ? 1 : -1
+            }
+        });
+    }
+
+    aggregation.push({
+        $facet: {
+            data: [
+                { $skip: parsedOffset },
+                { $limit: parsedLimit }
+            ],
+            totalCount: [
+                { $count: 'count' }
+            ]
+        }
+    });
+
+    return aggregation;
 };
 
 export {
