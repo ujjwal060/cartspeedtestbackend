@@ -43,7 +43,7 @@ pipeline {
                         sonarsource/sonar-scanner-cli:latest \
                         -Dsonar.projectKey=social-ecom-back \
                         -Dsonar.sources=/usr/src \
-                        -Dsonar.host.url=http://3.223.253.106:9000 \
+                        -Dsonar.host.url=http://18.209.91.97:9000 \
                         -Dsonar.login=${SONARTOKEN}
                     '''
                 }

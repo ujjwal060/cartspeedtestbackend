@@ -1,4 +1,4 @@
-import userModel from "../../usersManagement/models/userModel.js";
+import userModel from "../../models/userModel.js";
 import { logger } from "../../utils/logger.js";
 
 const getAllUsers = async (req, res) => {

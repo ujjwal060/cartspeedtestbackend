@@ -22,10 +22,18 @@ const adminValidationSchema = Joi.object({
             'string.pattern.base': 'Mobile number must include a valid country code and be in the format: +<country code><10-digit number>.',
             'any.required': 'Mobile number is required.',
         }),
-    state: Joi.string().required().messages({
-        'string.base': 'State must be a string.',
-        'string.empty': 'State is required.',
-        'any.required': 'State is required.',
+    locationName: Joi.string().required().messages({
+        'string.base': 'Location must be a string.',
+        'string.empty': 'Location is required.',
+        'any.required': 'Location is required.',
+    }),
+    latitude: Joi.number().required().messages({
+        'number.base': 'Latitude must be a number.',
+        'any.required': 'Latitude is required.'
+    }),
+    longitude: Joi.number().required().messages({
+        'number.base': 'Longitude must be a number.',
+        'any.required': 'Longitude is required.'
     }),
     password: Joi.string().min(6).max(128).required().messages({
         'string.base': 'Password must be a string.',
@@ -34,7 +42,7 @@ const adminValidationSchema = Joi.object({
         'string.max': 'Password cannot exceed 128 characters.',
         'any.required': 'Password is required.',
     }),
-    role:Joi.string().required().messages({
+    role: Joi.string().required().messages({
         'string.base': 'Role must be a string.',
         'string.empty': 'Role is required.',
         'any.required': 'Role is required.',

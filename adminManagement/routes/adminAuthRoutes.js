@@ -12,8 +12,11 @@ import {
     forgatePassword,
     verifyOtp,
     setPassword,
-    getProfileById
+    getProfileById,
+    toggleAdminStatus,
+    getAllAdmins
 } from '../controllers/adminAuthController.js';
+import { verifyTokenMiddleware } from '../adminmiddleware/adminAuthmiddleware.js';
 
 const router = express.Router();
 
@@ -22,7 +25,9 @@ router.post('/login', validateRequest(loginValidationSchema), login);
 router.post('/forgote', forgatePassword);
 router.post('/verifyotp',validateRequest(adminValidationSchemaOTP), verifyOtp);
 router.post('/setPass', validateRequest(setPasswordValidationSchema), setPassword);
-router.get('/profile/:id', getProfileById);
+router.get('/profile/:id',verifyTokenMiddleware, getProfileById);
+router.put('/status:/adminId',verifyTokenMiddleware,toggleAdminStatus);
+router.post('/getAllAdmins',verifyTokenMiddleware,getAllAdmins);
 
 
 export default router;

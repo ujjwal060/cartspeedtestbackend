@@ -1,41 +1,33 @@
-import videosModel from '../../adminManagement/models/videosModel.js';
+import LocationVideo from '../../models/videosModel.js';
+import location from '../../models/locationModel.js';
 import { logger } from '../../utils/logger.js';
 
 const getVideos = async (req, res) => {
     try {
-        const { offset, limit } = req.body;
-        const parsedOffset = parseInt(offset);
-        const parsedLimit = parseInt(limit);
-        let aggregation = [];
-
-        aggregation.push({
-            $match:{
-                isActive:true
-            }
-        });
-        aggregation.push({
-            $facet: {
-                data: [
-                    { $skip: parsedOffset },
-                    { $limit: parsedLimit }
-                ],
-                totalCount: [
-                    { $count: 'count' }
-                ]
+        const { latitude, longitude } = req.body;
+        const nearbyLocations = await location.find({
+            coordinates: {
+                $nearSphere: {
+                    $geometry: {
+                        type: "Point",
+                        coordinates: [81.0076, 26.8506],
+                    },
+                    $maxDistance: 80467,
+                }
             }
         });
 
-        const [result] = await videosModel.aggregate(aggregation);
-        const total = result.totalCount[0]?.count || 0;
-        logger.info(`User fetched ${result.data.length} videos, userId: ${req.user.userId}`);
+        if (!nearbyLocations.length) {
+            return res.status(404).json({ message: 'No nearby locations found' });
+        }
 
-        return res.status(200).json({
-            status: 200,
-            message: ['Videos fetched successfully.'],
-            data: result.data,
-            total
+        const locationIds = nearbyLocations.map(loc => loc._id);
+
+        const locationVideos = await LocationVideo.find({
+            location: { $in: locationIds },
         });
 
+        res.json(locationVideos);
     } catch (error) {
         logger.error("user-getVideos error", { error: error.message });
         return res.status(500).json({

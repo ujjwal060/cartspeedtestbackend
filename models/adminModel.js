@@ -28,10 +28,15 @@ const AdminSuperAdminSchema = new mongoose.Schema({
     required: true,
   },
   location: {
-    type: String,
-    required: function() {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Location',
+    required: function () {
       return this.role === 'admin';
     }
+  },
+  isActive: {
+    type: Boolean,
+    default: true
   },
   refreshToken: {
     type: String,
