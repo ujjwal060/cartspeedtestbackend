@@ -7,9 +7,11 @@ import { getVideoDurationInSeconds } from 'get-video-duration';
 
 const addVideos = async (req, res) => {
     try {
+        console.log(111);
         const { title, description, sectionNumber, sectionTitle } = req.body;
         const adminId = req.user.id;
         const url = req.fileLocations[0];
+        console.log(222);
 
         if (!title || !url || !sectionNumber || !sectionTitle || !adminId) {
             logger.warn('Missing required fields in addVideos');
@@ -27,6 +29,8 @@ const addVideos = async (req, res) => {
             });
         }
         const locationId = location.location;
+        console.log(333);
+
         const durationTime = 0
         // await getVideoDuration(url);
         const videoData = {

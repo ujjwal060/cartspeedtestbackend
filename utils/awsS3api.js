@@ -46,6 +46,7 @@ const uploadToS3 = async (req, res, next) => {
     if (!req.files || !req.files.image) {
       return next();
     }
+    console.log(101);
 
     const mediaFiles = Array.isArray(req.files.image) ? req.files.image : [req.files.image];
     const fileLocations = [];
@@ -71,6 +72,7 @@ const uploadToS3 = async (req, res, next) => {
       const fileUrl = `https://${config.S3_BUCKET}.s3.${config.AWS_REGION}.amazonaws.com/${params.Key}`;
       fileLocations.push(fileUrl);
     }
+    console.log(102);
 
     req.fileLocations = fileLocations;
     next();
