@@ -22,12 +22,15 @@ const getVideos = async (req, res) => {
         }
 
         const locationIds = nearbyLocations.map(loc => loc._id);
+        let aggregation = await getVideoAggregation(locationIds);
 
-        const locationVideos = await LocationVideo.find({
-            location: { $in: locationIds },
+        const locationVideos = await LocationVideo.aggregate(aggregation);
+
+        return res.status(200).json({
+            status: 200,
+            message: ["video fetched successfully"],
+            data: locationVideos
         });
-
-        res.json(locationVideos);
     } catch (error) {
         logger.error("user-getVideos error", { error: error.message });
         return res.status(500).json({
@@ -35,6 +38,47 @@ const getVideos = async (req, res) => {
             message: [error.message],
         });
     }
+}
+
+const getVideoAggregation = async (locationIds) => {
+    let aggregation = [];
+    aggregation.push({
+        $match: {
+            location: { $in: locationIds },
+        }
+    })
+
+    aggregation.push({
+        $unwind: "$sections",
+    })
+
+    aggregation.push({
+        $addFields: {
+            "sections.locationId": "$location",
+        }
+    })
+    aggregation.push({
+        $lookup: {
+            from: "locations",
+            localField: "sections.locationId",
+            foreignField: "_id",
+            as: "locationDetails",
+        }
+    })
+    aggregation.push({
+        $unwind: "$locationDetails",
+    })
+    aggregation.push({
+        $project: {
+            _id: "$sections._id",
+            sectionNumber: "$sections.sectionNumber",
+            title: "$sections.title",
+            durationTime: "$sections.durationTime",
+            videos: "$sections.videos",
+            location: "$locationDetails.name",
+        },
+    })
+    return aggregation;
 }
 
 export {
