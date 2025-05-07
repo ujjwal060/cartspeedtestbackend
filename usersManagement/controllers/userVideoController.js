@@ -1,18 +1,29 @@
 import LocationVideo from '../../models/videosModel.js';
 import location from '../../models/locationModel.js';
+import UserLocation from '../../models/userLocationMap.js';
 import { logger } from '../../utils/logger.js';
 
 const getVideos = async (req, res) => {
     try {
-        const { latitude, longitude } = req.body;
+        const MAX_DISTANCE_MI = 50;
+        const METERS_PER_MILE = 1609.34;
+        const userId = req.user.userId;
+        const userCurrentLocation = await UserLocation.findOne({ userId, isCurrent: true });
+
+        if (!userCurrentLocation) {
+            return res.status(404).json({ message: 'Current location not found for user' });
+        }
+
+        const coordinates = userCurrentLocation.coordinates.coordinates;
+
         const nearbyLocations = await location.find({
             coordinates: {
                 $nearSphere: {
                     $geometry: {
                         type: "Point",
-                        coordinates: [81.0076, 26.8506],
+                        coordinates: coordinates
                     },
-                    $maxDistance: 80467,
+                    $maxDistance: MAX_DISTANCE_MI * METERS_PER_MILE,
                 }
             }
         });
@@ -22,8 +33,7 @@ const getVideos = async (req, res) => {
         }
 
         const locationIds = nearbyLocations.map(loc => loc._id);
-        let aggregation = await getVideoAggregation(locationIds);
-
+        const aggregation = await getVideoAggregation(locationIds);
         const locationVideos = await LocationVideo.aggregate(aggregation);
 
         return res.status(200).json({
