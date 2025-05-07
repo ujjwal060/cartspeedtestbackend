@@ -31,7 +31,7 @@ const addOrUpdateUserLocation = async (req, res) => {
             }
         });
 
-        logger.debug(`Nearby location found: ${!!nearbyLocation}`);
+        logger.info(`Nearby location found: ${!!nearbyLocation}`);
 
         await userLocation.updateMany({ userId }, { $set: { isCurrent: false } });
         logger.info(`Reset isCurrent for all locations of user: ${userId}`);
@@ -56,7 +56,7 @@ const addOrUpdateUserLocation = async (req, res) => {
             });
         }
 
-        logger.success(`Location updated successfully for user: ${userId}`);
+        logger.info(`Location updated successfully for user: ${userId}`);
 
         return res.status(200).json({
             status: 200,
