@@ -200,6 +200,7 @@ const loginUser = async (req, res) => {
             data: {
                 accessToken,
                 refreshToken,
+                userId:user._id
             }
         });
 
