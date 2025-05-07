@@ -16,14 +16,17 @@ const userSchema = new mongoose.Schema(
       unique: false,
       sparse: true,
     },
-    state: {
-      type: String,
-      required: true,
-      default: null,
+    address:{
+      type:String,
+      required:true
     },
     password: {
       type: String,
       required:false
+    },
+    image: {
+      type: String,
+      default: null,
     },
     refreshToken: {
       type: String,

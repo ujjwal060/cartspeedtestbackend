@@ -8,14 +8,15 @@ const questionSchema = new mongoose.Schema({
       isCorrect: { type: Boolean, default: false },
     },
   ],
-  level: { type: String, enum: ['Easy', 'Medium', 'Hard'], required: true },
-  state: { type: String, required: true },
+  locationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Location', required: true },
+  sectionNumber: { type: Number, required: true },
   videoId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Video',
-    required: true
-  }
-},{timestamps: true});
+    required: true,
+  },
+  adminId: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', required: true },
+}, { timestamps: true });
+
 
 const questionModel = mongoose.model('Question', questionSchema);
 export default questionModel;

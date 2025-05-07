@@ -1,5 +1,5 @@
-import QuestionModel from "../models/questionModel.js";
-import videoModel from "../models/videosModel.js"
+import QuestionModel from "../../models/questionModel.js";
+import videoModel from "../../models/videosModel.js"
 import { logger } from "../../utils/logger.js";
 import { ObjectId } from 'bson';
 

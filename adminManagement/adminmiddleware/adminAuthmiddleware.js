@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { loadConfig } from '../../config/loadConfig.js';
-import adminModel from '../models/adminModel.js';
+import adminModel from '../../models/adminModel.js';
 import { logger } from '../../utils/logger.js';
 
 const verifyToken = async (req, res) => {
