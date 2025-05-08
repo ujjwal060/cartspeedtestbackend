@@ -1,6 +1,7 @@
 import LocationVideo from '../../models/videosModel.js';
 import location from '../../models/locationModel.js';
 import UserLocation from '../../models/userLocationMap.js';
+import UserVideoProgress from '../../models/UserVideoProgress.js';
 import { logger } from '../../utils/logger.js';
 
 const getVideos = async (req, res) => {
@@ -50,6 +51,38 @@ const getVideos = async (req, res) => {
     }
 }
 
+const updateVideoProgress = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const { videoId, sectionId, locationId, lastPlayedTime, isCompleted } = req.body;
+        if (!videoId || !sectionId || !locationId) {
+            return res.status(400).json({ message: 'videoId, sectionId, and locationId are required' });
+        }
+
+        const progress = await UserVideoProgress.findOneAndUpdate(
+            { userId, videoId, sectionId, locationId },
+            {
+                $set: {
+                    lastPlayedTime,
+                    isCompleted
+                }
+            },
+            { upsert: true, new: true }
+        );
+
+        return res.status(200).json({
+            status: 200,
+            message: ['Progress updated'],
+            data: progress
+        });
+    } catch (error) {
+        return res.status(500).json({
+            status: 500,
+            message: [error.message]
+        });
+    }
+}
+
 const getVideoAggregation = async (locationIds) => {
     let aggregation = [];
     aggregation.push({
@@ -86,6 +119,7 @@ const getVideoAggregation = async (locationIds) => {
             durationTime: "$sections.durationTime",
             videos: "$sections.videos",
             location: "$locationDetails.name",
+            locationId: "$locationDetails._id"
         },
     })
     return aggregation;
