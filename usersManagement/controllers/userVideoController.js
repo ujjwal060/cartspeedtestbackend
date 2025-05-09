@@ -36,7 +36,7 @@ const getVideos = async (req, res) => {
         }
 
         const locationIds = nearbyLocations.map(loc => loc._id);
-        const aggregation = await getVideoAggregation(locationIds);
+        const aggregation = await getVideoAggregation(locationIds,userId);
         const locationVideos = await LocationVideo.aggregate(aggregation);
 
         return res.status(200).json({
@@ -138,24 +138,25 @@ const updateVideoProgress = async (req, res) => {
     }
 };
 
-
-const getVideoAggregation = async (locationIds) => {
+const getVideoAggregation = async (locationIds, userId) => {
     let aggregation = [];
+
     aggregation.push({
         $match: {
             location: { $in: locationIds },
         }
-    })
+    });
 
     aggregation.push({
         $unwind: "$sections",
-    })
+    });
 
     aggregation.push({
         $addFields: {
             "sections.locationId": "$location",
         }
-    })
+    });
+
     aggregation.push({
         $lookup: {
             from: "locations",
@@ -163,10 +164,12 @@ const getVideoAggregation = async (locationIds) => {
             foreignField: "_id",
             as: "locationDetails",
         }
-    })
+    });
+
     aggregation.push({
         $unwind: "$locationDetails",
-    })
+    });
+
     aggregation.push({
         $project: {
             _id: "$sections._id",
@@ -175,11 +178,90 @@ const getVideoAggregation = async (locationIds) => {
             durationTime: "$sections.durationTime",
             videos: "$sections.videos",
             location: "$locationDetails.name",
-            locationId: "$locationDetails._id"
+            locationId: "$locationDetails._id",
+            userId: { $literal: userId }
         },
-    })
+    });
+
+    aggregation.push({
+        $lookup: {
+            from: "uservideoprogresses",
+            let: { sectionId: "$_id", locationId: "$locationId" },
+            pipeline: [
+                { $match: { $expr: { $eq: ["$userId", userId] } } },
+                { $unwind: "$sections" },
+                {
+                    $match: {
+                        $expr: {
+                            $eq: ["$sections.sectionId", "$$sectionId"]
+                        }
+                    }
+                },
+                { $project: { "sections.videos": 1, "sections.isSectionCompleted": 1 } }
+            ],
+            as: "userProgress"
+        }
+    });
+
+    aggregation.push({
+        $unwind: {
+            path: "$userProgress",
+            preserveNullAndEmptyArrays: true,
+        }
+    });
+
+    aggregation.push({
+        $project: {
+            _id: 1,
+            sectionNumber: 1,
+            title: 1,
+            durationTime: 1,
+            location: 1,
+            locationId: 1,
+            userId: 1,
+            isSectionCompleted: {
+                $ifNull: ["$userProgress.sections.isSectionCompleted", false]
+            },
+            videos: {
+                $map: {
+                    input: "$videos",
+                    as: "video",
+                    in: {
+                        $mergeObjects: [
+                            "$$video",
+                            {
+                                $let: {
+                                    vars: {
+                                        videoProgress: {
+                                            $arrayElemAt: [
+                                                {
+                                                    $filter: {
+                                                        input: "$userProgress.sections.videos",
+                                                        as: "progress",
+                                                        cond: {
+                                                            $eq: ["$$progress.videoId", "$$video._id"]
+                                                        }
+                                                    }
+                                                },
+                                                0
+                                            ]
+                                        }
+                                    },
+                                    in: {
+                                        watchedDuration: { $ifNull: ["$$videoProgress.watchedDuration", "0"] },
+                                        isCompleted: { $ifNull: ["$$videoProgress.isCompleted", false] }
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    });
+
     return aggregation;
-}
+};
 
 export {
     getVideos,
