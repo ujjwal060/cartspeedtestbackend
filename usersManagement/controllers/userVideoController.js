@@ -1,3 +1,5 @@
+import mongoose from 'mongoose';
+const { ObjectId } = mongoose.Types;
 import LocationVideo from '../../models/videosModel.js';
 import location from '../../models/locationModel.js';
 import UserLocation from '../../models/userLocationMap.js';
@@ -53,35 +55,89 @@ const getVideos = async (req, res) => {
 
 const updateVideoProgress = async (req, res) => {
     try {
-        const userId = req.user._id;
-        const { videoId, sectionId, locationId, lastPlayedTime, isCompleted } = req.body;
-        if (!videoId || !sectionId || !locationId) {
-            return res.status(400).json({ message: 'videoId, sectionId, and locationId are required' });
+        let { userId, locationId, sectionId, videoId, watchedDuration } = req.body;
+
+        locationId = new ObjectId(locationId);
+        sectionId = new ObjectId(sectionId);
+        videoId = new ObjectId(videoId);
+
+        const locationVideo = await LocationVideo.findOne({ location: locationId });
+
+        if (!locationVideo) {
+            logger.error('LocationVideo not found', { userId, locationId, sectionId, videoId });
+            return res.status(404).json({ status: 404, message: ['LocationVideo not found'] });
         }
 
-        const progress = await UserVideoProgress.findOneAndUpdate(
-            { userId, videoId, sectionId, locationId },
-            {
-                $set: {
-                    lastPlayedTime,
+        const section = locationVideo.sections.find(sec => sec._id.equals(sectionId));
+        if (!section) {
+            logger.error('Section not found', { userId, locationId, sectionId, videoId });
+            return res.status(404).json({ status: 404, message: ['Section not found'] });
+        }
+
+        const video = section.videos.find(v => v._id.equals(videoId));
+        if (!video) {
+            logger.error('Video not found', { userId, locationId, sectionId, videoId });
+            return res.status(404).json({ status: 404, message: ['Video not found'] });
+        }
+
+        const isCompleted = watchedDuration === video.durationTime;
+
+        let userProgress = await UserVideoProgress.findOne({ userId, locationId });
+
+        if (!userProgress) {
+            userProgress = new UserVideoProgress({
+                userId,
+                locationId,
+                sections: []
+            });
+        }
+
+        let sectionIndex = userProgress.sections.findIndex(sec => sec.sectionId.equals(sectionId));
+
+        if (sectionIndex === -1) {
+            userProgress.sections.push({
+                sectionId,
+                videos: [{
+                    videoId,
+                    watchedDuration: watchedDuration,
                     isCompleted
-                }
-            },
-            { upsert: true, new: true }
-        );
+                }],
+                isSectionCompleted: false
+            });
+        } else {
+            let videoIndex = userProgress.sections[sectionIndex].videos.findIndex(v => v.videoId.equals(videoId));
+
+            if (videoIndex === -1) {
+                userProgress.sections[sectionIndex].videos.push({
+                    videoId,
+                    watchedDuration: watchedDuration,
+                    isCompleted
+                });
+            } else {
+                userProgress.sections[sectionIndex].videos[videoIndex].watchedDuration = watchedDuration;
+                userProgress.sections[sectionIndex].videos[videoIndex].isCompleted = isCompleted;
+            }
+
+            const totalVideosInSection = section.videos.length;
+            const completedVideos = userProgress.sections[sectionIndex].videos.filter(v => v.isCompleted).length;
+            userProgress.sections[sectionIndex].isSectionCompleted = completedVideos === totalVideosInSection;
+        }
+
+        await userProgress.save();
 
         return res.status(200).json({
             status: 200,
-            message: ['Progress updated'],
-            data: progress
+            message: ['Video progress updated successfully']
         });
     } catch (error) {
+        logger.error("video-progress-update error", { error: error.message, stack: error.stack });
         return res.status(500).json({
             status: 500,
             message: [error.message]
         });
     }
-}
+};
+
 
 const getVideoAggregation = async (locationIds) => {
     let aggregation = [];
@@ -127,4 +183,5 @@ const getVideoAggregation = async (locationIds) => {
 
 export {
     getVideos,
+    updateVideoProgress
 }
