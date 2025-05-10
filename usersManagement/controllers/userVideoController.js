@@ -65,9 +65,7 @@ const getVideos = async (req, res) => {
         const aggregation = await getVideoAggregation(locationIds, userId);
         const locationVideos = await LocationVideo.aggregate(aggregation);
 
-        // Format the duration for each location and calculate section durations
         const formattedVideos = locationVideos.map(video => {
-            // Calculate section durations
             const sectionsWithDuration = video.sections.map(section => {
                 const sectionDuration = section.videos.reduce((total, video) => {
                     return total + parseDurationToSeconds(video.durationTime);
@@ -194,7 +192,6 @@ const getVideoAggregation = async (locationIds, userId) => {
         }
     });
 
-    // First calculate totals for each location
     aggregation.push({
         $group: {
             _id: "$location",
