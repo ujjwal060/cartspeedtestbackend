@@ -168,49 +168,61 @@ const updateQuestion = async (req, res) => {
     }
 }
 
-const getVideosForDropdown=async(req,res)=>{
-     try {
-            const {level} = req.body;
-            let aggregation = [];
-    
-            if (level) {
-                aggregation.push({
-                    $match: {
-                        level:level,
-                    }
-                })
-            };
+const getVideosForDropdown = async (req, res) => {
+    try {
+        const { section } = req.body;
+        const userId = req.user.id;
+        let aggregation = [];
+
+        aggregation.push({
+            $match: {
+                admin: new ObjectId(userId)
+            }
+        });
+
+        aggregation.push({
+            $unwind: '$sections'
+        });
+
+        if (section) {
             aggregation.push({
-                $match:{
-                    isActive:true
+                $match: {
+                    'sections.sectionNumber': parseInt(section)
                 }
-            })
-            aggregation.push({
-                $project: {
-                    _id:1,
-                    title: 1,
-                    locationState: 1,
-                    isActive: 1,
-                    level:1
-                }
-            });
-    
-            const result = await videoModel.aggregate(aggregation);
-          
-            logger.info(`Fetched ${result.length} videos for user: ${req.user.id}`);
-    
-            return res.status(200).json({
-                status: 200,
-                message: ['Videos fetched successfully.'],
-                data: result,
-            });
-        } catch (error) {
-            logger.error(`getAllVideos Error`, error.message);
-            return res.status(500).json({
-                status: 500,
-                message: [error.message],
             });
         }
+
+        aggregation.push({
+            $unwind: '$sections.videos'
+        });
+
+        aggregation.push({
+            $project: {
+                vId: '$sections.videos._id',
+                sId: '$sections._id',
+                title: '$sections.videos.title',
+                sectionNumber: '$sections.sectionNumber',
+                sectionTitle: '$sections.title',
+                location: '$location'
+            }
+        });
+
+        const result = await videoModel.aggregate(aggregation);
+        
+        logger.info(`Fetched ${result.length} videos for user: ${userId}`);
+
+        return res.status(200).json({
+            status: 200,
+            message: ['Videos fetched successfully.'],
+            data: result,
+        });
+    } catch (error) {
+        logger.error(`getVideosForDropdown Error`, error.message);
+        return res.status(500).json({
+            status: 500,
+            message: [error.message],
+        });
+    }
 }
 
 export {
