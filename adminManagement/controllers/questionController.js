@@ -5,8 +5,8 @@ import { ObjectId } from 'bson';
 
 const createQuestion = async (req, res) => {
     try {
-        const {level, question, options,videoId,state } = req.body;
-            if (!options || !level || !videoId|| !question) {
+       const { question, options, videoId, sectionNumber, locationId, adminId,sectionId } = req.body;
+            if (!options || !videoId || !question || !locationId || !sectionNumber || !adminId){
             logger.warn('Missing required fields in createQuestion');
             return res.status(400).json({
                 status: 400,
@@ -15,11 +15,13 @@ const createQuestion = async (req, res) => {
         }
 
         const newQuestion = new QuestionModel({
-            level,
+            sectionNumber,
             question,
             options,
             videoId,
-            state
+            locationId,
+            adminId,
+            sectionId
         });
 
         await newQuestion.save();

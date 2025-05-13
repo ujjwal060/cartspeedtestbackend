@@ -9,7 +9,10 @@ const questionSchema = new mongoose.Schema({
     },
   ],
   locationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Location', required: true },
-  sectionNumber: { type: Number, required: true },
+  sectionNumber: { type: String, required: true },
+  sectionId:{ type: mongoose.Schema.Types.ObjectId,
+    required: true,
+  },
   videoId: {
     type: mongoose.Schema.Types.ObjectId,
     required: true,
