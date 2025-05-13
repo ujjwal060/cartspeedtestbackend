@@ -1,18 +1,58 @@
+import mongoose from 'mongoose';
+const { ObjectId } = mongoose.Types;
 import LocationVideo from '../../models/videosModel.js';
 import location from '../../models/locationModel.js';
+import UserLocation from '../../models/userLocationMap.js';
+import UserVideoProgress from '../../models/UserVideoProgress.js';
 import { logger } from '../../utils/logger.js';
+
+const formatDuration = (seconds) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return `${hours}h ${minutes}m`;
+};
+
+const parseDurationToSeconds = (duration) => {
+    if (typeof duration === 'number') return duration;
+    
+    if (duration.includes('h') && duration.includes('m')) {
+        const [hours, minutes] = duration.split('h').map(part => 
+            parseInt(part.replace(/[^0-9]/g, '')) || 0
+        );
+        return (hours * 3600) + (minutes * 60);
+    }
+    
+    if (duration.includes('m') && duration.includes('s')) {
+        const [minutes, seconds] = duration.split('m').map(part => 
+            parseInt(part.replace(/[^0-9]/g, '')) || 0
+        );
+        return (minutes * 60) + seconds;
+    }
+    
+    return 0;
+};
 
 const getVideos = async (req, res) => {
     try {
-        const { latitude, longitude } = req.body;
+        const MAX_DISTANCE_MI = 50;
+        const METERS_PER_MILE = 1609.34;
+        const userId = req.user.userId;
+        const userCurrentLocation = await UserLocation.findOne({ userId, isCurrent: true });
+
+        if (!userCurrentLocation) {
+            return res.status(404).json({ message: 'Current location not found for user' });
+        }
+
+        const coordinates = userCurrentLocation.coordinates.coordinates;
+
         const nearbyLocations = await location.find({
             coordinates: {
                 $nearSphere: {
                     $geometry: {
                         type: "Point",
-                        coordinates: [81.0076, 26.8506],
+                        coordinates: coordinates
                     },
-                    $maxDistance: 80467,
+                    $maxDistance: MAX_DISTANCE_MI * METERS_PER_MILE,
                 }
             }
         });
@@ -22,14 +62,32 @@ const getVideos = async (req, res) => {
         }
 
         const locationIds = nearbyLocations.map(loc => loc._id);
-        let aggregation = await getVideoAggregation(locationIds);
-
+        const aggregation = await getVideoAggregation(locationIds, userId);
         const locationVideos = await LocationVideo.aggregate(aggregation);
+
+        const formattedVideos = locationVideos.map(video => {
+            const sectionsWithDuration = video.sections.map(section => {
+                const sectionDuration = section.videos.reduce((total, video) => {
+                    return total + parseDurationToSeconds(video.durationTime);
+                }, 0);
+                
+                return {
+                    ...section,
+                    durationTime: formatDuration(sectionDuration)
+                };
+            });
+
+            return {
+                ...video,
+                totalDuration: formatDuration(video.totalDuration),
+                sections: sectionsWithDuration
+            };
+        });
 
         return res.status(200).json({
             status: 200,
             message: ["video fetched successfully"],
-            data: locationVideos
+            data: formattedVideos
         });
     } catch (error) {
         logger.error("user-getVideos error", { error: error.message });
@@ -40,47 +98,319 @@ const getVideos = async (req, res) => {
     }
 }
 
-const getVideoAggregation = async (locationIds) => {
+const updateVideoProgress = async (req, res) => {
+    try {
+        let { userId, locationId, sectionId, videoId, watchedDuration } = req.body;
+
+        locationId = new ObjectId(locationId);
+        sectionId = new ObjectId(sectionId);
+        videoId = new ObjectId(videoId);
+
+        const locationVideo = await LocationVideo.findOne({ location: locationId });
+
+        if (!locationVideo) {
+            logger.error('LocationVideo not found', { userId, locationId, sectionId, videoId });
+            return res.status(404).json({ status: 404, message: ['LocationVideo not found'] });
+        }
+
+        const section = locationVideo.sections.find(sec => sec._id.equals(sectionId));
+        if (!section) {
+            logger.error('Section not found', { userId, locationId, sectionId, videoId });
+            return res.status(404).json({ status: 404, message: ['Section not found'] });
+        }
+
+        const video = section.videos.find(v => v._id.equals(videoId));
+        if (!video) {
+            logger.error('Video not found', { userId, locationId, sectionId, videoId });
+            return res.status(404).json({ status: 404, message: ['Video not found'] });
+        }
+
+        const isCompleted = watchedDuration === video.durationTime;
+
+        let userProgress = await UserVideoProgress.findOne({ userId, locationId });
+
+        if (!userProgress) {
+            userProgress = new UserVideoProgress({
+                userId,
+                locationId,
+                sections: []
+            });
+        }
+
+        let sectionIndex = userProgress.sections.findIndex(sec => sec.sectionId.equals(sectionId));
+
+        if (sectionIndex === -1) {
+            userProgress.sections.push({
+                sectionId,
+                videos: [{
+                    videoId,
+                    watchedDuration: watchedDuration,
+                    isCompleted
+                }],
+                isSectionCompleted: false
+            });
+        } else {
+            let videoIndex = userProgress.sections[sectionIndex].videos.findIndex(v => v.videoId.equals(videoId));
+
+            if (videoIndex === -1) {
+                userProgress.sections[sectionIndex].videos.push({
+                    videoId,
+                    watchedDuration: watchedDuration,
+                    isCompleted
+                });
+            } else {
+                userProgress.sections[sectionIndex].videos[videoIndex].watchedDuration = watchedDuration;
+                userProgress.sections[sectionIndex].videos[videoIndex].isCompleted = isCompleted;
+            }
+
+            const totalVideosInSection = section.videos.length;
+            const completedVideos = userProgress.sections[sectionIndex].videos.filter(v => v.isCompleted).length;
+            userProgress.sections[sectionIndex].isSectionCompleted = completedVideos === totalVideosInSection;
+        }
+
+        await userProgress.save();
+
+        return res.status(200).json({
+            status: 200,
+            message: ['Video progress updated successfully']
+        });
+    } catch (error) {
+        logger.error("video-progress-update error", { error: error.message, stack: error.stack });
+        return res.status(500).json({
+            status: 500,
+            message: [error.message]
+        });
+    }
+};
+
+const getVideoAggregation = async (locationIds, userId) => {
     let aggregation = [];
+
     aggregation.push({
         $match: {
-            location: { $in: locationIds },
+            location: { $in: locationIds.map(id => new ObjectId(id)) },
         }
-    })
+    });
 
     aggregation.push({
-        $unwind: "$sections",
-    })
-
-    aggregation.push({
-        $addFields: {
-            "sections.locationId": "$location",
+        $group: {
+            _id: "$location",
+            totalVideos: {
+                $sum: {
+                    $reduce: {
+                        input: "$sections",
+                        initialValue: 0,
+                        in: { $add: ["$$value", { $size: "$$this.videos" }] }
+                    }
+                }
+            },
+            totalDuration: {
+                $sum: {
+                    $reduce: {
+                        input: "$sections",
+                        initialValue: 0,
+                        in: {
+                            $add: [
+                                "$$value",
+                                {
+                                    $reduce: {
+                                        input: "$$this.videos",
+                                        initialValue: 0,
+                                        in: {
+                                            $add: [
+                                                "$$value",
+                                                {
+                                                    $let: {
+                                                        vars: {
+                                                            duration: "$$this.durationTime"
+                                                        },
+                                                        in: {
+                                                            $cond: {
+                                                                if: { $regexMatch: { input: "$$duration", regex: /^\d+m\s*\d+s$/ } },
+                                                                then: {
+                                                                    $add: [
+                                                                        { 
+                                                                            $multiply: [
+                                                                                { 
+                                                                                    $toInt: { 
+                                                                                        $trim: {
+                                                                                            input: {
+                                                                                                $substr: [
+                                                                                                    "$$duration",
+                                                                                                    0,
+                                                                                                    { $indexOfCP: ["$$duration", "m"] }
+                                                                                                ]
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                },
+                                                                                60
+                                                                            ]
+                                                                        },
+                                                                        { 
+                                                                            $toInt: { 
+                                                                                $trim: {
+                                                                                    input: {
+                                                                                        $substr: [
+                                                                                            "$$duration",
+                                                                                            { $add: [{ $indexOfCP: ["$$duration", "m"] }, 1] },
+                                                                                            { $subtract: [{ $indexOfCP: ["$$duration", "s"] }, { $add: [{ $indexOfCP: ["$$duration", "m"] }, 1] }] }
+                                                                                        ]
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                else: { $toInt: "$$duration" }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            sections: { $first: "$sections" }
         }
-    })
+    });
+
     aggregation.push({
         $lookup: {
             from: "locations",
-            localField: "sections.locationId",
-            foreignField: "_id",
+            let: { locationId: "$_id" },
+            pipeline: [
+                {
+                    $match: {
+                        $expr: { $eq: ["$_id", "$$locationId"] }
+                    }
+                }
+            ],
             as: "locationDetails",
         }
-    })
+    });
+
     aggregation.push({
-        $unwind: "$locationDetails",
-    })
+        $unwind: {
+            path: "$locationDetails",
+            preserveNullAndEmptyArrays: true
+        }
+    });
+
     aggregation.push({
-        $project: {
-            _id: "$sections._id",
-            sectionNumber: "$sections.sectionNumber",
-            title: "$sections.title",
-            durationTime: "$sections.durationTime",
-            videos: "$sections.videos",
-            location: "$locationDetails.name",
-        },
-    })
+        $unwind: "$sections"
+    });
+
+    aggregation.push({
+        $lookup: {
+            from: "uservideoprogresses",
+            let: { 
+                sectionId: "$sections._id",
+                locationId: "$_id",
+                userId: { $toObjectId: userId }
+            },
+            pipeline: [
+                {
+                    $match: {
+                        $expr: {
+                            $and: [
+                                { $eq: ["$userId", "$$userId"] },
+                                { $eq: ["$locationId", "$$locationId"] }
+                            ]
+                        }
+                    }
+                },
+                { $unwind: "$sections" },
+                {
+                    $match: {
+                        $expr: {
+                            $eq: ["$sections.sectionId", "$$sectionId"]
+                        }
+                    }
+                },
+                { 
+                    $project: { 
+                        "sections.videos": 1, 
+                        "sections.isSectionCompleted": 1 
+                    } 
+                }
+            ],
+            as: "userProgress"
+        }
+    });
+
+    aggregation.push({
+        $unwind: {
+            path: "$userProgress",
+            preserveNullAndEmptyArrays: true,
+        }
+    });
+
+    aggregation.push({
+        $group: {
+            _id: "$_id",
+            location: { $first: "$locationDetails.name" },
+            locationId: { $first: "$_id" },
+            totalVideos: { $first: "$totalVideos" },
+            totalDuration: { $first: "$totalDuration" },
+            sections: {
+                $push: {
+                    _id: "$sections._id",
+                    sectionNumber: "$sections.sectionNumber",
+                    title: "$sections.title",
+                    durationTime: "$sections.durationTime",
+                    isSectionCompleted: {
+                        $ifNull: ["$userProgress.sections.isSectionCompleted", false]
+                    },
+                    videos: {
+                        $map: {
+                            input: "$sections.videos",
+                            as: "video",
+                            in: {
+                                $mergeObjects: [
+                                    "$$video",
+                                    {
+                                        $let: {
+                                            vars: {
+                                                videoProgress: {
+                                                    $arrayElemAt: [
+                                                        {
+                                                            $filter: {
+                                                                input: "$userProgress.sections.videos",
+                                                                as: "progress",
+                                                                cond: {
+                                                                    $eq: ["$$progress.videoId", "$$video._id"]
+                                                                }
+                                                            }
+                                                        },
+                                                        0
+                                                    ]
+                                                }
+                                            },
+                                            in: {
+                                                watchedDuration: { $ifNull: ["$$videoProgress.watchedDuration", "0"] },
+                                                isCompleted: { $ifNull: ["$$videoProgress.isCompleted", false] }
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    });
+
     return aggregation;
-}
+};
 
 export {
     getVideos,
+    updateVideoProgress
 }
