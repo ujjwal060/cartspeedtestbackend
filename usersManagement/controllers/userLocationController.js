@@ -16,7 +16,7 @@ const addOrUpdateUserLocation = async (req, res) => {
             return res.status(400).json({ message: 'All fields are required' });
         }
 
-        const coordinates = [longitude, latitude];
+        const coordinates = [latitude,longitude];
         const maxDistanceInMeters = MAX_DISTANCE_MI * METERS_PER_MILE;
 
         logger.info(`Checking nearby location for user: ${userId}`);
