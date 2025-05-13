@@ -85,14 +85,28 @@ const getAllQuestions = async (req, res) => {
             }
         });
 
-        const result = await QuestionModel.aggregate(aggregation);
+        aggregation.push({
+            $facet: {
+                data: [
+                    { $skip: parsedOffset },
+                    { $limit: parsedLimit }
+                ],
+                totalCount: [
+                    { $count: 'count' }
+                ]
+            }
+        });
+
+        const [result] = await QuestionModel.aggregate(aggregation);
+        const total = result.totalCount[0]?.count || 0;
+                
         logger.info(`Fetched ${result.length} questions`);
 
         return res.status(200).json({
             status: 200,
             message: ['Questions fetched successfully'],
-            data: result,
-            total: result.length
+            data: result.data,
+            total
         });
 
     } catch (error) {
