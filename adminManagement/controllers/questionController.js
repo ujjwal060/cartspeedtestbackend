@@ -5,8 +5,8 @@ import { ObjectId } from 'bson';
 
 const createQuestion = async (req, res) => {
     try {
-       const { question, options, videoId, sectionNumber, locationId, adminId,sectionId } = req.body;
-            if (!options || !videoId || !question || !locationId || !sectionNumber || !adminId){
+        const { question, options, videoId, sectionNumber, locationId, adminId, sectionId } = req.body;
+        if (!options || !videoId || !question || !locationId || !sectionNumber || !adminId) {
             logger.warn('Missing required fields in createQuestion');
             return res.status(400).json({
                 status: 400,
@@ -43,89 +43,56 @@ const createQuestion = async (req, res) => {
 
 const getAllQuestions = async (req, res) => {
     try {
+        const adminId = req.user.id;
         const { filters, offset, limit } = req.body;
         const parsedOffset = parseInt(offset);
         const parsedLimit = parseInt(limit);
         let aggregation = [];
 
-        if (filters?.level) {
-            aggregation.push({
-                $match: {
-                    level: filters?.level
-                }
-            })
-        }
-        if (filters?.state) {
-            aggregation.push({
-                $match: {
-                    state: filters?.state
-                }
-            })
-        }
-        if (filters?.videoId) {
-            aggregation.push({
-                $match: {
-                    videoId: new ObjectId(filters?.videoId)
-                }
-            })
-        }
+        aggregation.push({
+            $match: {
+                adminId: new ObjectId(adminId)
+            }
+        });
 
         aggregation.push({
             $lookup: {
-                from: 'videos',
-                localField: 'videoId',
+                from: 'locations',
+                localField: 'locationId',
                 foreignField: '_id',
-                as: 'videoData'
+                as: 'locationDetails'
             }
         });
-        
+
         aggregation.push({
             $unwind: {
-                path: '$videoData',
+                path: '$locationDetails',
                 preserveNullAndEmptyArrays: true
             }
         });
 
         aggregation.push({
             $project: {
-                level: 1,
-                state: 1,
+                question: 1,
+                options: 1,
                 videoId: 1,
+                sectionNumber: 1,
+                locationId: 1,
                 createdAt: 1,
-                question:1,
-                options:1,
-                videoData: {
-                    url: '$videoData.url',
-                    title: '$videoData.title'
-                }
+                updatedAt: 1,
+                locationName: '$locationDetails.name',
+                adminId: 1
             }
         });
 
-        aggregation.push({
-            $sort: { createdAt: -1 }
-        });
-
-        aggregation.push({
-            $facet: {
-                data: [
-                    { $skip: parsedOffset },
-                    { $limit: parsedLimit }
-                ],
-                totalCount: [
-                    { $count: 'count' }
-                ]
-            }
-        });
-
-        const [result] = await QuestionModel.aggregate(aggregation);
-        const total = result.totalCount[0]?.count || 0;
-        logger.info(`Fetched ${result.data.length} questions`);
+        const result = await QuestionModel.aggregate(aggregation);
+        logger.info(`Fetched ${result.length} questions`);
 
         return res.status(200).json({
             status: 200,
             message: ['Questions fetched successfully'],
-            data: result.data,
-            total
+            data: result,
+            total: result.length
         });
 
     } catch (error) {
@@ -210,7 +177,7 @@ const getVideosForDropdown = async (req, res) => {
         });
 
         const result = await videoModel.aggregate(aggregation);
-        
+
         logger.info(`Fetched ${result.length} videos for user: ${userId}`);
 
         return res.status(200).json({
