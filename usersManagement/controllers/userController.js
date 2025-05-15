@@ -445,6 +445,7 @@ const getProfileById = async (req, res) => {
                 password: 0,
                 otp: 0,
                 otpExpire: 0,
+                refreshToken:0,
                 __v: 0
             }
         })
@@ -463,7 +464,7 @@ const getProfileById = async (req, res) => {
         return res.status(200).json({
             status: 200,
             message: ["User fetched successfully"],
-            data: user
+            data: user[0]
         });
     } catch (error) {
         logger.error(`Error fetching user: ${req.params.id}`, { error });
