@@ -71,7 +71,7 @@ const getAllQuestions = async (req, res) => {
             }
         });
 
-        if (sectionNumber) {
+        if (filters?.sectionNumber) {
             aggregation.push({
                 $match: {
                     sectionNumber: filters?.sectionNumber
