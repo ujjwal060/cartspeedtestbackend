@@ -4,6 +4,10 @@ import LocationVideo from "../../models/videosModel.js";
 import adminModel from "../../models/adminModel.js";
 import { logger } from "../../utils/logger.js";
 import { getVideoDurationInSeconds } from 'get-video-duration';
+import ffmpeg from 'fluent-ffmpeg';
+import ffprobeInstaller from '@ffprobe-installer/ffprobe';
+
+ffmpeg.setFfprobePath(ffprobeInstaller.path);
 
 const addVideos = async (req, res) => {
     try {        
@@ -27,8 +31,7 @@ const addVideos = async (req, res) => {
             });
         }
         const locationId = location.location;
-        const durationTime ='1m 27s' ;
-        // await getVideoDuration(url);
+        const durationTime = await getVideoDuration(url);
         const videoData = {
             title,
             url,
@@ -239,10 +242,13 @@ const checkExistingSection = async (req, res) => {
 }
 
 const getVideoDuration = async (url) => {
-    const duration = await getVideoDurationInSeconds(url);
-    const minutes = Math.floor(duration / 60);
-    const seconds = Math.floor(duration % 60);
-    return `${minutes}m ${seconds}s`;
+    return new Promise((resolve, reject) => {
+    ffmpeg.ffprobe(url, (err, metadata) => {
+      if (err) return reject(err);
+      const duration = metadata.format.duration;
+      resolve(`${Math.floor(duration / 60)}m ${Math.floor(duration % 60)}s`);
+    });
+  });
 };
 
 const getallAggregation = ({ filters, adminId, sortField, sortBy, offset, limit }) => {
