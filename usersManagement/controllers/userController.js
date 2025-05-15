@@ -459,7 +459,6 @@ const getProfileById = async (req, res) => {
                 message: ["User not found"],
             });
         }
-
         logger.info(`User fetched successfully: ${req.params.id}`);
         return res.status(200).json({
             status: 200,
