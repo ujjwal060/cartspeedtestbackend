@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 const { ObjectId } = mongoose.Types;
 import UserVideoProgress from '../../models/UserVideoProgress.js';
+import UserTestAttempts from '../../models/usertestModel.js';
 import { logger } from '../../utils/logger.js';
 
 
