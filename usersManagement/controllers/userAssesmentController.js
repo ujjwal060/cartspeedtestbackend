@@ -66,14 +66,12 @@ const getAggregation = async (userId, locationId, sectionNumber, isSectionComple
         },
     })
 
-    aggregation.push({
+   aggregation.push({
         $lookup: {
             from: "questions",
             let: {
                 videoIds: "$videoIds",
-                sectionId: "$_id",
-                locationId: new ObjectId(locationId),
-                sectionNumber: sectionNumber
+                sectionId: "$_id"
             },
             pipeline: [
                 {
@@ -82,13 +80,12 @@ const getAggregation = async (userId, locationId, sectionNumber, isSectionComple
                             $and: [
                                 { $in: ["$videoId", "$$videoIds"] },
                                 { $eq: ["$sectionId", "$$sectionId"] },
-                                { $eq: ["$locationId", "$$locationId"] },
-                                { $eq: ["$sectionNumber", "$$sectionNumber"] }
+                                { $eq: ["$locationId", new ObjectId(locationId)] },
+                                { $eq: ["$sectionNumber", sectionNumber.toString()] }
                             ]
                         }
                     }
-                },
-                { $sample: { size: 10 } }
+                }
             ],
             as: "questions"
         }
@@ -97,7 +94,10 @@ const getAggregation = async (userId, locationId, sectionNumber, isSectionComple
     aggregation.push({
         $project: {
             _id: 0,
-            questions: 1
+            sectionId: "$_id",
+            questions: {
+                $slice: ["$questions", 10]
+            }
         }
     });
 
