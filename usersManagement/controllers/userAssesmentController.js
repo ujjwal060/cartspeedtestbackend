@@ -8,10 +8,13 @@ const getAssesmentForUser = async (req, res) => {
     try {
         const userId = req.user.userId;
         const { locationId, sectionNumber, isSectionCompleted, sectionId } = req.body;
+        logger.info(`Fetching assessment for user: ${userId}, location: ${locationId}, section: ${sectionNumber}`);
 
         let aggregation = await getAggregation(userId, locationId, sectionNumber, isSectionCompleted, sectionId);
 
         const result = await UserVideoProgress.aggregate(aggregation);
+
+        logger.info(`Assessment fetched successfully for user: ${userId}`);
 
         return res.status(200).json({
             status: 200,
@@ -19,6 +22,7 @@ const getAssesmentForUser = async (req, res) => {
             data: result
         });
     } catch (error) {
+        logger.error(`Error fetching assessment for user: ${req.user?.userId}`, error.message);
         return res.status(500).json({
             status: 500,
             message: [error.message],
@@ -66,7 +70,7 @@ const getAggregation = async (userId, locationId, sectionNumber, isSectionComple
         },
     })
 
-   aggregation.push({
+    aggregation.push({
         $lookup: {
             from: "questions",
             let: {
@@ -102,32 +106,32 @@ const getAggregation = async (userId, locationId, sectionNumber, isSectionComple
     // });
 
     aggregation.push({
-  $project: {
-    _id: 0,
-    sectionId: "$_id",
-    questions: {
-      $map: {
-        input: { $slice: ["$questions", 10] },
-        as: "q",
-        in: {
-          _id: "$$q._id",
-          question: "$$q.question",
-          options: {
-            $map: {
-              input: "$$q.options",
-              as: "opt",
-              in: {
-                text: "$$opt.text",
-                isCorrect: "$$opt.isCorrect",
-                _id: "$$opt._id"
-              }
+        $project: {
+            _id: 0,
+            sectionId: "$_id",
+            questions: {
+                $map: {
+                    input: { $slice: ["$questions", 10] },
+                    as: "q",
+                    in: {
+                        _id: "$$q._id",
+                        question: "$$q.question",
+                        options: {
+                            $map: {
+                                input: "$$q.options",
+                                as: "opt",
+                                in: {
+                                    text: "$$opt.text",
+                                    isCorrect: "$$opt.isCorrect",
+                                    _id: "$$opt._id"
+                                }
+                            }
+                        }
+                    }
+                }
             }
-          }
         }
-      }
-    }
-  }
-});
+    });
 
     return aggregation;
 }
