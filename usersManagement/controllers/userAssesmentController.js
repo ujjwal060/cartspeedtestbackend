@@ -91,15 +91,43 @@ const getAggregation = async (userId, locationId, sectionNumber, isSectionComple
         }
     });
 
+    // aggregation.push({
+    //     $project: {
+    //         _id: 0,
+    //         sectionId: "$_id",
+    //         questions: {
+    //             $slice: ["$questions", 10]
+    //         }
+    //     }
+    // });
+
     aggregation.push({
-        $project: {
-            _id: 0,
-            sectionId: "$_id",
-            questions: {
-                $slice: ["$questions", 10]
+  $project: {
+    _id: 0,
+    sectionId: "$_id",
+    questions: {
+      $map: {
+        input: { $slice: ["$questions", 10] },
+        as: "q",
+        in: {
+          _id: "$$q._id",
+          question: "$$q.question",
+          options: {
+            $map: {
+              input: "$$q.options",
+              as: "opt",
+              in: {
+                text: "$$opt.text",
+                isCorrect: "$$opt.isCorrect",
+                _id: "$$opt._id"
+              }
             }
+          }
         }
-    });
+      }
+    }
+  }
+});
 
     return aggregation;
 }
