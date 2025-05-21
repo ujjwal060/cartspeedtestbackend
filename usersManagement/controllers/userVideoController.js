@@ -14,21 +14,21 @@ const formatDuration = (seconds) => {
 
 const parseDurationToSeconds = (duration) => {
     if (typeof duration === 'number') return duration;
-    
+
     if (duration.includes('h') && duration.includes('m')) {
-        const [hours, minutes] = duration.split('h').map(part => 
+        const [hours, minutes] = duration.split('h').map(part =>
             parseInt(part.replace(/[^0-9]/g, '')) || 0
         );
         return (hours * 3600) + (minutes * 60);
     }
-    
+
     if (duration.includes('m') && duration.includes('s')) {
-        const [minutes, seconds] = duration.split('m').map(part => 
+        const [minutes, seconds] = duration.split('m').map(part =>
             parseInt(part.replace(/[^0-9]/g, '')) || 0
         );
         return (minutes * 60) + seconds;
     }
-    
+
     return 0;
 };
 
@@ -70,7 +70,7 @@ const getVideos = async (req, res) => {
                 const sectionDuration = section.videos.reduce((total, video) => {
                     return total + parseDurationToSeconds(video.durationTime);
                 }, 0);
-                
+
                 return {
                     ...section,
                     durationTime: formatDuration(sectionDuration)
@@ -159,10 +159,16 @@ const updateVideoProgress = async (req, res) => {
                     isCompleted
                 });
             } else {
-                userProgress.sections[sectionIndex].videos[videoIndex].watchedDuration = watchedDuration;
-                userProgress.sections[sectionIndex].videos[videoIndex].isCompleted = isCompleted;
-            }
+                const existingVideoProgress = userProgress.sections[sectionIndex].videos[videoIndex];
 
+                if (!existingVideoProgress.isCompleted) {
+                    existingVideoProgress.watchedDuration = watchedDuration;
+
+                    if (watchedDuration === video.durationTime) {
+                        existingVideoProgress.isCompleted = true;
+                    }
+                }
+            }
             const totalVideosInSection = section.videos.length;
             const completedVideos = userProgress.sections[sectionIndex].videos.filter(v => v.isCompleted).length;
             userProgress.sections[sectionIndex].isSectionCompleted = completedVideos === totalVideosInSection;
@@ -229,10 +235,10 @@ const getVideoAggregation = async (locationIds, userId) => {
                                                                 if: { $regexMatch: { input: "$$duration", regex: /^\d+m\s*\d+s$/ } },
                                                                 then: {
                                                                     $add: [
-                                                                        { 
+                                                                        {
                                                                             $multiply: [
-                                                                                { 
-                                                                                    $toInt: { 
+                                                                                {
+                                                                                    $toInt: {
                                                                                         $trim: {
                                                                                             input: {
                                                                                                 $substr: [
@@ -247,8 +253,8 @@ const getVideoAggregation = async (locationIds, userId) => {
                                                                                 60
                                                                             ]
                                                                         },
-                                                                        { 
-                                                                            $toInt: { 
+                                                                        {
+                                                                            $toInt: {
                                                                                 $trim: {
                                                                                     input: {
                                                                                         $substr: [
@@ -309,7 +315,7 @@ const getVideoAggregation = async (locationIds, userId) => {
     aggregation.push({
         $lookup: {
             from: "uservideoprogresses",
-            let: { 
+            let: {
                 sectionId: "$sections._id",
                 locationId: "$_id",
                 userId: { $toObjectId: userId }
@@ -333,11 +339,11 @@ const getVideoAggregation = async (locationIds, userId) => {
                         }
                     }
                 },
-                { 
-                    $project: { 
-                        "sections.videos": 1, 
-                        "sections.isSectionCompleted": 1 
-                    } 
+                {
+                    $project: {
+                        "sections.videos": 1,
+                        "sections.isSectionCompleted": 1
+                    }
                 }
             ],
             as: "userProgress"
