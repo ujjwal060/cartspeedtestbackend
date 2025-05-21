@@ -29,7 +29,7 @@ const createLSVRule = async (req, res) => {
         const savedRule = await newRule.save();
 
         res.status(201).json({
-            status:201,
+            status: 201,
             message: 'LSV Rule created successfully.',
             data: savedRule
         });
@@ -42,6 +42,26 @@ const createLSVRule = async (req, res) => {
     }
 }
 
-export{
-    createLSVRule
+const getGLSVRules = async (req, res) => {
+    try {
+        const adminId = req.user.id;
+
+        const rules = await goodLSVRulesModel.find({ adminId }).populate('locationId', 'name');
+
+        return res.status(200).json({
+            status: 200,
+            message: 'LSV Rules fetched successfully',
+            data: rules
+        });
+    } catch (error) {
+        return res.status(500).json({
+            status: 500,
+            message: [error.message],
+        });
+    }
+}
+
+export {
+    createLSVRule,
+    getGLSVRules
 }
