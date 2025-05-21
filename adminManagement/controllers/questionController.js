@@ -71,6 +71,14 @@ const getAllQuestions = async (req, res) => {
             }
         });
 
+        if (filters?.sectionNumber) {
+            aggregation.push({
+                $match: {
+                    sectionNumber: filters?.sectionNumber
+                }
+            })
+        }
+
         aggregation.push({
             $project: {
                 question: 1,
@@ -99,7 +107,7 @@ const getAllQuestions = async (req, res) => {
 
         const [result] = await QuestionModel.aggregate(aggregation);
         const total = result.totalCount[0]?.count || 0;
-                
+
         logger.info(`Fetched ${result.length} questions`);
 
         return res.status(200).json({
