@@ -3,7 +3,6 @@ import questionModel from "../../models/questionModel.js"
 import LocationVideo from "../../models/videosModel.js";
 import adminModel from "../../models/adminModel.js";
 import { logger } from "../../utils/logger.js";
-import { getVideoDurationInSeconds } from 'get-video-duration';
 import ffmpeg from 'fluent-ffmpeg';
 import ffprobeInstaller from '@ffprobe-installer/ffprobe';
 
