@@ -5,7 +5,9 @@ import {
     getAllVideos,
     deleteVideos,
     videosStatus,
-    checkExistingSection
+    checkExistingSection,
+    addSafityVideos,
+    getSaftyVideos
 }from "../controllers/videosController.js";
 
 
@@ -16,5 +18,8 @@ router.post('/getAll',getAllVideos);
 router.delete('/deleteVideo/:videoId',deleteVideos)
 router.patch('/status/:id', videosStatus);
 router.post('/checkExSection/:adminId',checkExistingSection);
+router.post('/addSafityVideo',uploadToS3,addSafityVideos);
+router.post('/getSeftyVideo',getSaftyVideos);
+
 
 export default router;

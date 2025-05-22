@@ -2,15 +2,15 @@ import mongoose from "mongoose";
 import questionModel from "../../models/questionModel.js"
 import LocationVideo from "../../models/videosModel.js";
 import adminModel from "../../models/adminModel.js";
+import safityVideo from "../../models/saftyVideosModel.js";
 import { logger } from "../../utils/logger.js";
-import { getVideoDurationInSeconds } from 'get-video-duration';
 import ffmpeg from 'fluent-ffmpeg';
 import ffprobeInstaller from '@ffprobe-installer/ffprobe';
 
 ffmpeg.setFfprobePath(ffprobeInstaller.path);
 
 const addVideos = async (req, res) => {
-    try {        
+    try {
         const { title, description, sectionNumber, sectionTitle } = req.body;
         const adminId = req.user.id;
         const url = req.fileLocations[0];
@@ -75,7 +75,7 @@ const getAllVideos = async (req, res) => {
         const [result] = await LocationVideo.aggregate(aggregation);
 
         const total = result.totalCount[0]?.count || 0;
-        
+
         logger.info(`Fetched ${result.data.length} videos for user: ${req.user.id}`);
 
         const formatted = result.data.map(item => ({
@@ -243,12 +243,12 @@ const checkExistingSection = async (req, res) => {
 
 const getVideoDuration = async (url) => {
     return new Promise((resolve, reject) => {
-    ffmpeg.ffprobe(url, (err, metadata) => {
-      if (err) return reject(err);
-      const duration = metadata.format.duration;
-      resolve(`${Math.floor(duration / 60)}m ${Math.floor(duration % 60)}s`);
+        ffmpeg.ffprobe(url, (err, metadata) => {
+            if (err) return reject(err);
+            const duration = metadata.format.duration;
+            resolve(`${Math.floor(duration / 60)}m ${Math.floor(duration % 60)}s`);
+        });
     });
-  });
 };
 
 const getallAggregation = ({ filters, adminId, sortField, sortBy, offset, limit }) => {
@@ -325,10 +325,137 @@ const getallAggregation = ({ filters, adminId, sortField, sortBy, offset, limit 
     return aggregation;
 };
 
+const addSafityVideos = async (req, res) => {
+    try {
+        const { title, description, } = req.body;
+        const adminId = req.user.id;
+        const url = req.fileLocations[0];
+
+        if (!title || !url || !adminId) {
+            logger.warn('Missing required fields in addVideos');
+            return res.status(400).json({
+                status: 400,
+                message: ['Required fields are missing.'],
+            });
+        }
+
+        const location = await adminModel.findById(adminId);
+        if (!location) {
+            return res.status(404).json({
+                status: 404,
+                message: ['No location found for this admin.'],
+            });
+        }
+        const locationId = location.location;
+        const durationTime = await getVideoDuration(url);
+        const videoData = new safityVideo({
+            title,
+            url,
+            locationId,
+            adminId,
+            description,
+            durationTime,
+            isActive: true,
+        });
+
+        await videoData.save();
+        return res.status(201).json({
+            status: 201,
+            message: ['Video uploaded and added to section successfully.'],
+        });
+
+    } catch (error) {
+        logger.error(`addVideos Error`, error.message);
+        return res.status(500).json({
+            status: 500,
+            message: [error.message],
+        });
+    }
+}
+
+const getSaftyVideos = async (req, res) => {
+    try {
+        const adminId = req.user.id;
+        const { offset, limit } = req.body;
+        let aggregation = await gateAggregationSaftyVideo({ adminId, offset, limit });
+
+        const result = await safityVideo.aggregate(aggregation);
+
+        const videos = result[0]?.data || [];
+        const total = result[0]?.totalCount[0]?.count || 0;
+
+        return res.status(200).json({
+            status: 200,
+            message: ['Videos fetched successfully.'],
+            data: videos,
+            total,
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            status: 500,
+            message: [error.message],
+        });
+    }
+}
+
+const gateAggregationSaftyVideo = async ({ adminId, offset, limit }) => {
+    const parsedOffset = parseInt(offset);
+    const parsedLimit = parseInt(limit);
+    const aggregation = [];
+
+    aggregation.push({
+        $match: {
+            adminId: new mongoose.Types.ObjectId(adminId),
+        }
+    });
+
+    aggregation.push({
+        $lookup: {
+            from: 'locations',
+            localField: 'location',
+            foreignField: '_id',
+            as: 'locationInfo',
+        },
+    });
+
+    aggregation.push({
+        $unwind: {
+            path: '$locationInfo',
+            preserveNullAndEmptyArrays: true,
+        },
+    });
+
+    aggregation.push({
+        $project: {
+            title: 1,
+            description: 1,
+            durationTime: 1,
+            url: 1,
+            locationName: '$locationInfo.name',
+        }
+    });
+
+    aggregation.push({
+        $facet: {
+            data: [
+                { $skip: parsedOffset },
+                { $limit: parsedLimit }
+            ],
+            totalCount: [
+                { $count: 'count' }
+            ]
+        }
+    });
+
+    return aggregation;
+}
 export {
     addVideos,
     getAllVideos,
     deleteVideos,
     videosStatus,
-    checkExistingSection
+    checkExistingSection,
+    addSafityVideos,
+    getSaftyVideos
 }
