@@ -10,7 +10,7 @@ import ffprobeInstaller from '@ffprobe-installer/ffprobe';
 ffmpeg.setFfprobePath(ffprobeInstaller.path);
 
 const addVideos = async (req, res) => {
-    try {        
+    try {
         const { title, description, sectionNumber, sectionTitle } = req.body;
         const adminId = req.user.id;
         const url = req.fileLocations[0];
@@ -75,7 +75,7 @@ const getAllVideos = async (req, res) => {
         const [result] = await LocationVideo.aggregate(aggregation);
 
         const total = result.totalCount[0]?.count || 0;
-        
+
         logger.info(`Fetched ${result.data.length} videos for user: ${req.user.id}`);
 
         const formatted = result.data.map(item => ({
@@ -243,12 +243,12 @@ const checkExistingSection = async (req, res) => {
 
 const getVideoDuration = async (url) => {
     return new Promise((resolve, reject) => {
-    ffmpeg.ffprobe(url, (err, metadata) => {
-      if (err) return reject(err);
-      const duration = metadata.format.duration;
-      resolve(`${Math.floor(duration / 60)}m ${Math.floor(duration % 60)}s`);
+        ffmpeg.ffprobe(url, (err, metadata) => {
+            if (err) return reject(err);
+            const duration = metadata.format.duration;
+            resolve(`${Math.floor(duration / 60)}m ${Math.floor(duration % 60)}s`);
+        });
     });
-  });
 };
 
 const getallAggregation = ({ filters, adminId, sortField, sortBy, offset, limit }) => {
@@ -326,7 +326,7 @@ const getallAggregation = ({ filters, adminId, sortField, sortBy, offset, limit 
 };
 
 const addSafityVideos = async (req, res) => {
-    try {        
+    try {
         const { title, description, } = req.body;
         const adminId = req.user.id;
         const url = req.fileLocations[0];
@@ -373,11 +373,89 @@ const addSafityVideos = async (req, res) => {
     }
 }
 
+const getSaftyVideos = async (req, res) => {
+    try {
+        const adminId = req.user.id;
+        const { offset, limit } = req.body;
+        let aggregation = await gateAggregationSaftyVideo({ adminId, offset, limit });
+
+        const result = await safityVideo.aggregate(aggregation);
+
+        const videos = result[0]?.data || [];
+        const total = result[0]?.totalCount[0]?.count || 0;
+
+        return res.status(200).json({
+            status: 200,
+            message: ['Videos fetched successfully.'],
+            data: videos,
+            total,
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            status: 500,
+            message: [error.message],
+        });
+    }
+}
+
+const gateAggregationSaftyVideo = async ({ adminId, offset, limit }) => {
+    const parsedOffset = parseInt(offset);
+    const parsedLimit = parseInt(limit);
+    const aggregation = [];
+
+    aggregation.push({
+        $match: {
+            adminId: new mongoose.Types.ObjectId(adminId),
+        }
+    });
+
+    aggregation.push({
+        $lookup: {
+            from: 'locations',
+            localField: 'location',
+            foreignField: '_id',
+            as: 'locationInfo',
+        },
+    });
+
+    aggregation.push({
+        $unwind: {
+            path: '$locationInfo',
+            preserveNullAndEmptyArrays: true,
+        },
+    });
+
+    aggregation.push({
+        $project: {
+            title: 1,
+            description: 1,
+            durationTime: 1,
+            url: 1,
+            locationName: '$locationInfo.name',
+        }
+    });
+
+    aggregation.push({
+        $facet: {
+            data: [
+                { $skip: parsedOffset },
+                { $limit: parsedLimit }
+            ],
+            totalCount: [
+                { $count: 'count' }
+            ]
+        }
+    });
+
+    return aggregation;
+}
 export {
     addVideos,
     getAllVideos,
     deleteVideos,
     videosStatus,
     checkExistingSection,
-    addSafityVideos
+    addSafityVideos,
+    getSaftyVideos
 }
