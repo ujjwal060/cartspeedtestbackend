@@ -4,6 +4,7 @@ import LocationVideo from '../../models/videosModel.js';
 import location from '../../models/locationModel.js';
 import UserLocation from '../../models/userLocationMap.js';
 import UserVideoProgress from '../../models/UserVideoProgress.js';
+import safityVideo from "../../models/saftyVideosModel.js";
 import { logger } from '../../utils/logger.js';
 
 const formatDuration = (seconds) => {
@@ -416,7 +417,155 @@ const getVideoAggregation = async (locationIds, userId) => {
     return aggregation;
 };
 
+const getSaftyVideo = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const userLoc = await UserLocation.findOne({
+            userId: new ObjectId(userId),
+            isCurrent: true
+        });
+
+        if (!userLoc) {
+            return res.status(404).json({
+                status: 404,
+                message: ['Current user location not found']
+            });
+        }
+
+        const userCoordinates = userLoc.coordinates.coordinates;
+        logger.info('User Coordinates:', userCoordinates);
+
+        const nearbyLocations = await location.aggregate([
+            {
+                $geoNear: {
+                    near: { type: "Point", coordinates: userCoordinates },
+                    distanceField: "distance",
+                    spherical: true,
+                    maxDistance: 80467.2,
+                    distanceMultiplier: 0.001
+                }
+            }
+        ]);
+
+        if (nearbyLocations.length === 0) {
+            return res.status(404).json({
+                status: 404,
+                message: ['No locations found within 50 miles radius']
+            });
+        }
+
+        const locationIds = nearbyLocations.map(loc => loc._id);
+        let aggregation = await saftyVideoAggregation(locationIds, nearbyLocations);
+
+        const videos = await safityVideo.aggregate(aggregation);
+        logger.info('Safety videos found:', videos.length);
+
+        if (videos.length === 0) {
+            return res.status(404).json({
+                status: 404,
+                message: ['No safety videos found for nearby locations']
+            });
+        }
+
+        return res.json({
+            status: 200,
+            message: ['Successfully found safety videos for nearby locations'],
+            data: videos
+        });
+
+    } catch (error) {
+        logger.error('Error in getSaftyVideo:', error);
+        return res.status(500).json({
+            status: 500,
+            message: [error.message],
+        });
+    }
+}
+
+const saftyVideoAggregation = async (locationIds, nearbyLocations) => {
+    let aggregation = [];
+
+    aggregation.push({
+        $match: {
+            locationId: { $in: locationIds },
+            isActive: true
+        }
+    });
+
+    aggregation.push({
+        $lookup: {
+            from: 'locations',
+            localField: 'locationId',
+            foreignField: '_id',
+            as: 'location'
+        }
+    });
+
+    aggregation.push({
+        $unwind: '$location'
+    });
+
+    aggregation.push({
+        $addFields: {
+            'location.distance': {
+                $let: {
+                    vars: {
+                        locId: '$locationId'
+                    },
+                    in: {
+                        $arrayElemAt: [
+                            {
+                                $map: {
+                                    input: nearbyLocations,
+                                    as: 'nearLoc',
+                                    in: {
+                                        $cond: {
+                                            if: { $eq: ['$$nearLoc._id', '$$locId'] },
+                                            then: '$$nearLoc.distance',
+                                            else: null
+                                        }
+                                    }
+                                }
+                            },
+                            0
+                        ]
+                    }
+                }
+            }
+        }
+    });
+
+    aggregation.push({
+        $group: {
+            _id: '$locationId',
+            video: { $first: '$$ROOT' }
+        }
+    });
+
+    aggregation.push({
+        $replaceRoot: { newRoot: '$video' }
+    });
+
+    aggregation.push({
+        $project: {
+            _id: 1,
+            title: 1,
+            description: 1,
+            durationTime: 1,
+            url: 1,
+            distance: '$location.distance'
+        }
+    });
+
+    aggregation.push({
+        $sort: { distance: 1 }
+    });
+
+    return aggregation;
+}
+
 export {
     getVideos,
-    updateVideoProgress
+    updateVideoProgress,
+    getSaftyVideo
 }
