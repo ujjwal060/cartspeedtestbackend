@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import questionModel from "../../models/questionModel.js"
 import LocationVideo from "../../models/videosModel.js";
 import adminModel from "../../models/adminModel.js";
+import safityVideo from "../../models/saftyVideosModel.js";
 import { logger } from "../../utils/logger.js";
 import ffmpeg from 'fluent-ffmpeg';
 import ffprobeInstaller from '@ffprobe-installer/ffprobe';
@@ -324,10 +325,58 @@ const getallAggregation = ({ filters, adminId, sortField, sortBy, offset, limit 
     return aggregation;
 };
 
+const addSafityVideos = async (req, res) => {
+    try {        
+        const { title, description, } = req.body;
+        const adminId = req.user.id;
+        const url = req.fileLocations[0];
+
+        if (!title || !url || !adminId) {
+            logger.warn('Missing required fields in addVideos');
+            return res.status(400).json({
+                status: 400,
+                message: ['Required fields are missing.'],
+            });
+        }
+
+        const location = await adminModel.findById(adminId);
+        if (!location) {
+            return res.status(404).json({
+                status: 404,
+                message: ['No location found for this admin.'],
+            });
+        }
+        const locationId = location.location;
+        const durationTime = await getVideoDuration(url);
+        const videoData = new safityVideo({
+            title,
+            url,
+            locationId,
+            description,
+            durationTime,
+            isActive: true,
+        });
+
+        await videoData.save();
+        return res.status(201).json({
+            status: 201,
+            message: ['Video uploaded and added to section successfully.'],
+        });
+
+    } catch (error) {
+        logger.error(`addVideos Error`, error.message);
+        return res.status(500).json({
+            status: 500,
+            message: [error.message],
+        });
+    }
+}
+
 export {
     addVideos,
     getAllVideos,
     deleteVideos,
     videosStatus,
-    checkExistingSection
+    checkExistingSection,
+    addSafityVideos
 }
