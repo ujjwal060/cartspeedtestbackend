@@ -8,6 +8,6 @@ import {
 const router = express.Router();
 router.get('/getVideos', getVideos);
 router.post('/updateVideo', updateVideoProgress);
-router.get('/getSaftyVideos', getSaftyVideo);
+router.get('/getSafetyVideos', getSaftyVideo);
 
 export default router;
