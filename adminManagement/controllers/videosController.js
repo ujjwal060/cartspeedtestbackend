@@ -352,6 +352,7 @@ const addSafityVideos = async (req, res) => {
             title,
             url,
             locationId,
+            adminId,
             description,
             durationTime,
             isActive: true,
