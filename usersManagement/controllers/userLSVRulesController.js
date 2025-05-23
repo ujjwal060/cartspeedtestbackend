@@ -138,6 +138,32 @@ const filterAggregation = async (locationIds, nearbyLocations) => {
                         ]
                     }
                 }
+            },
+            'sections': {
+                $map: {
+                    input: '$sections',
+                    as: 'section',
+                    in: {
+                        $mergeObjects: [
+                            '$$section',
+                            {
+                                description: {
+                                    $replaceAll: {
+                                        input: {
+                                            $replaceAll: {
+                                                input: '$$section.description',
+                                                find: '<p>',
+                                                replacement: ''
+                                            }
+                                        },
+                                        find: '</p>',
+                                        replacement: ''
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
             }
         }
     })
@@ -283,6 +309,32 @@ const filterAggregationRRLSV = async (locationIds, nearbyLocations) => {
                                 }
                             },
                             0
+                        ]
+                    }
+                }
+            },
+            'sections': {
+                $map: {
+                    input: '$sections',
+                    as: 'section',
+                    in: {
+                        $mergeObjects: [
+                            '$$section',
+                            {
+                                description: {
+                                    $replaceAll: {
+                                        input: {
+                                            $replaceAll: {
+                                                input: '$$section.description',
+                                                find: '<p>',
+                                                replacement: ''
+                                            }
+                                        },
+                                        find: '</p>',
+                                        replacement: ''
+                                    }
+                                }
+                            }
                         ]
                     }
                 }
