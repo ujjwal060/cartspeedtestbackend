@@ -41,7 +41,7 @@ const getVideos = async (req, res) => {
         const userCurrentLocation = await UserLocation.findOne({ userId, isCurrent: true });
 
         if (!userCurrentLocation) {
-            return res.status(404).json({ message: 'Current location not found for user' });
+            return res.status(404).json({ message: ['Current location not found for user'] });
         }
 
         const coordinates = userCurrentLocation.coordinates.coordinates;
@@ -59,7 +59,7 @@ const getVideos = async (req, res) => {
         });
 
         if (!nearbyLocations.length) {
-            return res.status(404).json({ message: 'No nearby locations found' });
+            return res.status(404).json({ message: ['No nearby locations found'] });
         }
 
         const locationIds = nearbyLocations.map(loc => loc._id);
