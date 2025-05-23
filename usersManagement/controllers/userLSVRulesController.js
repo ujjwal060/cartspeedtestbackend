@@ -61,7 +61,7 @@ const getGLSVRule = async (req, res) => {
         return res.json({
             status: 200,
             message: ["Successfully found LSV rules for nearby locations"],
-            data: lsvRules
+            data: lsvRules[0]
         });
 
     } catch (error) {
@@ -78,6 +78,25 @@ const filterAggregation = async (locationIds, nearbyLocations) => {
     aggregation.push({
         $match: {
             locationId: { $in: locationIds }
+        }
+    })
+
+    aggregation.push({
+        $sort: {
+            createdAt: -1
+        }
+    })
+
+    aggregation.push({
+        $group: {
+            _id: "$locationId",
+            latestRule: { $first: "$$ROOT" }
+        }
+    })
+
+    aggregation.push({
+        $replaceRoot: {
+            newRoot: "$latestRule"
         }
     })
 
@@ -128,6 +147,7 @@ const filterAggregation = async (locationIds, nearbyLocations) => {
             _id: 1,
             questions: 1,
             sections: 1,
+            createdAt: 1
         }
     })
 
@@ -189,7 +209,7 @@ const getRRLSVRule = async (req, res) => {
         return res.json({
             status: 200,
             message: ["Successfully found LSV rules for nearby locations"],
-            data: lsvRules
+            data: lsvRules[0]
         });
 
     } catch (error) {
@@ -206,6 +226,25 @@ const filterAggregationRRLSV = async (locationIds, nearbyLocations) => {
     aggregation.push({
         $match: {
             locationId: { $in: locationIds }
+        }
+    })
+
+    aggregation.push({
+        $sort: {
+            createdAt: -1
+        }
+    })
+
+    aggregation.push({
+        $group: {
+            _id: "$locationId",
+            latestRule: { $first: "$$ROOT" }
+        }
+    })
+
+    aggregation.push({
+        $replaceRoot: {
+            newRoot: "$latestRule"
         }
     })
 
@@ -256,6 +295,7 @@ const filterAggregationRRLSV = async (locationIds, nearbyLocations) => {
             _id: 1,
             questions: 1,
             sections: 1,
+            createdAt: 1
         }
     })
 
