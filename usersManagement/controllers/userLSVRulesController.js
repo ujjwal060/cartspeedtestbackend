@@ -39,7 +39,7 @@ const getGLSVRule = async (req, res) => {
         if (nearbyLocations.length === 0) {
             return res.status(404).json({
                 status: 404,
-                message: "No locations found within 50 miles radius"
+                message: ["No locations found within 50 miles radius"]
             });
         }
 
@@ -54,13 +54,13 @@ const getGLSVRule = async (req, res) => {
         if (lsvRules.length === 0) {
             return res.status(404).json({
                 status: 404,
-                message: "No LSV rules found for nearby locations"
+                message: ["No LSV rules found for nearby locations"]
             });
         }
 
         return res.json({
             status: 200,
-            message: "Successfully found LSV rules for nearby locations",
+            message: ["Successfully found LSV rules for nearby locations"],
             data: lsvRules
         });
 
@@ -167,7 +167,7 @@ const getRRLSVRule = async (req, res) => {
         if (nearbyLocations.length === 0) {
             return res.status(404).json({
                 status: 404,
-                message: "No locations found within 50 miles radius"
+                message: ["No locations found within 50 miles radius"]
             });
         }
 
@@ -182,13 +182,13 @@ const getRRLSVRule = async (req, res) => {
         if (lsvRules.length === 0) {
             return res.status(404).json({
                 status: 404,
-                message: "No LSV rules found for nearby locations"
+                message: ["No LSV rules found for nearby locations"]
             });
         }
 
         return res.json({
             status: 200,
-            message: "Successfully found LSV rules for nearby locations",
+            message: ["Successfully found LSV rules for nearby locations"],
             data: lsvRules
         });
 
