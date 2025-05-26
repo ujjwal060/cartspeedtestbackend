@@ -1,4 +1,5 @@
 import express from 'express';
+import {uploadToS3} from "../../utils/awsS3api.js"
 import {
     createLSVRule,
     getGLSVRules,
@@ -7,9 +8,9 @@ import {
 } from '../controllers/goodLSVRuleController.js';
 const router = express.Router();
 
-router.post('/addGLSVR', createLSVRule);
+router.post('/addGLSVR',uploadToS3,createLSVRule);
 router.get('/getGLSV', getGLSVRules);
-router.post('/addRRLSVR', createRRLSV);
+router.post('/addRRLSVR',uploadToS3,createRRLSV);
 router.get('/getRRLSV', getRRLSVRules);
 
 export default router;

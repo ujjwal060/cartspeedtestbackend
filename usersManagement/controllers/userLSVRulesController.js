@@ -39,7 +39,7 @@ const getGLSVRule = async (req, res) => {
         if (nearbyLocations.length === 0) {
             return res.status(404).json({
                 status: 404,
-                message: "No locations found within 50 miles radius"
+                message: ["No locations found within 50 miles radius"]
             });
         }
 
@@ -54,14 +54,14 @@ const getGLSVRule = async (req, res) => {
         if (lsvRules.length === 0) {
             return res.status(404).json({
                 status: 404,
-                message: "No LSV rules found for nearby locations"
+                message: ["No LSV rules found for nearby locations"]
             });
         }
 
         return res.json({
             status: 200,
-            message: "Successfully found LSV rules for nearby locations",
-            data: lsvRules
+            message: ["Successfully found LSV rules for nearby locations"],
+            data: lsvRules[0]
         });
 
     } catch (error) {
@@ -78,6 +78,25 @@ const filterAggregation = async (locationIds, nearbyLocations) => {
     aggregation.push({
         $match: {
             locationId: { $in: locationIds }
+        }
+    })
+
+    aggregation.push({
+        $sort: {
+            createdAt: -1
+        }
+    })
+
+    aggregation.push({
+        $group: {
+            _id: "$locationId",
+            latestRule: { $first: "$$ROOT" }
+        }
+    })
+
+    aggregation.push({
+        $replaceRoot: {
+            newRoot: "$latestRule"
         }
     })
 
@@ -119,6 +138,32 @@ const filterAggregation = async (locationIds, nearbyLocations) => {
                         ]
                     }
                 }
+            },
+            'sections': {
+                $map: {
+                    input: '$sections',
+                    as: 'section',
+                    in: {
+                        $mergeObjects: [
+                            '$$section',
+                            {
+                                description: {
+                                    $replaceAll: {
+                                        input: {
+                                            $replaceAll: {
+                                                input: '$$section.description',
+                                                find: '<p>',
+                                                replacement: ''
+                                            }
+                                        },
+                                        find: '</p>',
+                                        replacement: ''
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
             }
         }
     })
@@ -128,6 +173,8 @@ const filterAggregation = async (locationIds, nearbyLocations) => {
             _id: 1,
             questions: 1,
             sections: 1,
+            guidelines:1,
+            createdAt: 1
         }
     })
 
@@ -167,7 +214,7 @@ const getRRLSVRule = async (req, res) => {
         if (nearbyLocations.length === 0) {
             return res.status(404).json({
                 status: 404,
-                message: "No locations found within 50 miles radius"
+                message: ["No locations found within 50 miles radius"]
             });
         }
 
@@ -182,14 +229,14 @@ const getRRLSVRule = async (req, res) => {
         if (lsvRules.length === 0) {
             return res.status(404).json({
                 status: 404,
-                message: "No LSV rules found for nearby locations"
+                message: ["No LSV rules found for nearby locations"]
             });
         }
 
         return res.json({
             status: 200,
-            message: "Successfully found LSV rules for nearby locations",
-            data: lsvRules
+            message: ["Successfully found LSV rules for nearby locations"],
+            data: lsvRules[0]
         });
 
     } catch (error) {
@@ -206,6 +253,25 @@ const filterAggregationRRLSV = async (locationIds, nearbyLocations) => {
     aggregation.push({
         $match: {
             locationId: { $in: locationIds }
+        }
+    })
+
+    aggregation.push({
+        $sort: {
+            createdAt: -1
+        }
+    })
+
+    aggregation.push({
+        $group: {
+            _id: "$locationId",
+            latestRule: { $first: "$$ROOT" }
+        }
+    })
+
+    aggregation.push({
+        $replaceRoot: {
+            newRoot: "$latestRule"
         }
     })
 
@@ -247,6 +313,32 @@ const filterAggregationRRLSV = async (locationIds, nearbyLocations) => {
                         ]
                     }
                 }
+            },
+            'sections': {
+                $map: {
+                    input: '$sections',
+                    as: 'section',
+                    in: {
+                        $mergeObjects: [
+                            '$$section',
+                            {
+                                description: {
+                                    $replaceAll: {
+                                        input: {
+                                            $replaceAll: {
+                                                input: '$$section.description',
+                                                find: '<p>',
+                                                replacement: ''
+                                            }
+                                        },
+                                        find: '</p>',
+                                        replacement: ''
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
             }
         }
     })
@@ -256,6 +348,8 @@ const filterAggregationRRLSV = async (locationIds, nearbyLocations) => {
             _id: 1,
             questions: 1,
             sections: 1,
+            guidelines:1,
+            createdAt: 1
         }
     })
 
