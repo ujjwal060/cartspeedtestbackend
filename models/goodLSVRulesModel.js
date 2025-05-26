@@ -15,6 +15,21 @@ const questionSchema = new mongoose.Schema({
   }
 });
 
+const guidelineSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true
+  },
+  description: {
+    type: String,
+    required: true
+  },
+  imageUrl: {
+    type: String,
+    required: true
+  }
+});
+
 const sectionSchema = new mongoose.Schema({
   title: {
     type: String,
@@ -43,10 +58,11 @@ const rulesAndRegulationSchema = new mongoose.Schema({
   },
   questions: questionSchema,
   sections: [sectionSchema],
+  guidelines: [guidelineSchema],
   createdAt: {
     type: Date,
     default: Date.now
   }
 });
 
- export default mongoose.model('GLSVRule', rulesAndRegulationSchema);
+export default mongoose.model('GLSVRule', rulesAndRegulationSchema);
