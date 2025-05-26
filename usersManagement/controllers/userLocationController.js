@@ -1,5 +1,7 @@
 import userLocation from '../../models/userLocationMap.js';
 import { logger } from '../../utils/logger.js';
+import adminModel from '../../models/adminModel.js';
+import locationModel from '../../models/locationModel.js';
 
 const EARTH_RADIUS_MI = 3963.2;
 const MAX_DISTANCE_MI = 50;
@@ -87,26 +89,75 @@ const getAccessibleArea = async (req, res) => {
             });
         }
 
-        const [longitude, latitude] = userCurrentLocation.coordinates.coordinates;
+        // Get user's current coordinates
+        const [userLongitude, userLatitude] = userCurrentLocation.coordinates.coordinates;
+
+        // Find the nearest admin location
+        const nearbyLocations = await locationModel.aggregate([
+            {
+                $geoNear: {
+                    near: { type: "Point", coordinates: [userLongitude, userLatitude] },
+                    distanceField: "distance",
+                    spherical: true,
+                    maxDistance: ACCESSIBLE_RADIUS_MI * METERS_PER_MILE,
+                    distanceMultiplier: 0.001
+                }
+            },
+            {
+                $lookup: {
+                    from: 'admins',
+                    localField: '_id',
+                    foreignField: 'location',
+                    as: 'admin'
+                }
+            },
+            {
+                $unwind: '$admin'
+            },
+            {
+                $match: {
+                    'admin.role': 'admin',
+                    'admin.isActive': true
+                }
+            },
+            {
+                $limit: 1
+            }
+        ]);
+
+        if (nearbyLocations.length === 0) {
+            return res.status(404).json({
+                status: 404,
+                message: ['No admin location found within accessible area']
+            });
+        }
+
+        const adminLocation = nearbyLocations[0];
+        const [adminLongitude, adminLatitude] = adminLocation.coordinates.coordinates;
         
-        // Generate points for the polygon (32 points for a smooth circle)
+        // Generate points for the admin's polygon (32 points for a smooth circle)
         const numPoints = 32;
         const points = [];
         
         for (let i = 0; i < numPoints; i++) {
             const angle = (i * 360) / numPoints;
-            const point = calculatePointFromCenter(latitude, longitude, ACCESSIBLE_RADIUS_MI, angle);
+            const point = calculatePointFromCenter(adminLatitude, adminLongitude, ACCESSIBLE_RADIUS_MI, angle);
             points.push(point);
         }
 
         // Close the polygon by adding the first point again
         points.push(points[0]);
 
+        // Check if user's location is within the polygon
+        const isWithinPolygon = isPointInPolygon([userLongitude, userLatitude], points);
+
         const polygon = {
             type: "Feature",
             properties: {
-                name: userCurrentLocation.name,
-                radius: ACCESSIBLE_RADIUS_MI
+                adminName: adminLocation.name,
+                radius: ACCESSIBLE_RADIUS_MI,
+                isUserWithinArea: isWithinPolygon,
+                distance: adminLocation.distance
             },
             geometry: {
                 type: "Polygon",
@@ -127,6 +178,23 @@ const getAccessibleArea = async (req, res) => {
             message: [error.message],
         });
     }
+};
+
+// Helper function to check if a point is inside a polygon
+const isPointInPolygon = (point, polygon) => {
+    const x = point[0], y = point[1];
+    let inside = false;
+    
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+        const xi = polygon[i][0], yi = polygon[i][1];
+        const xj = polygon[j][0], yj = polygon[j][1];
+        
+        const intersect = ((yi > y) !== (yj > y))
+            && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }
+    
+    return inside;
 };
 
 // Helper function to calculate a point on the circle given center, radius and angle
