@@ -87,7 +87,18 @@ const getGLSVRules = async (req, res) => {
 const createRRLSV = async (req, res) => {
     try {
         const adminId = req.user.id;
-        const { questions, sections } = req.body;
+        let questions, sections, guidelines;
+
+        try {
+            questions = JSON.parse(req.body.questions);
+            sections = JSON.parse(req.body.sections);
+            guidelines = JSON.parse(req.body.guidelines);
+        } catch (parseError) {
+            return res.status(400).json({
+                status: 400,
+                message: ['Invalid JSON format in request data']
+            });
+        }
 
         if (!adminId || !questions || !sections) {
             return res.status(400).json({ message: 'All required fields must be provided.' });
@@ -101,19 +112,25 @@ const createRRLSV = async (req, res) => {
             });
         }
         const locationId = location.location;
+        const processedGuidelines = guidelines.map((guideline, index) => {
+            return {
+                ...guideline,
+                imageUrl: (req.fileLocations?.[index]) || null
+            };
+        });
 
         const newRule = new ruleRagulationLSVModel({
             locationId,
             adminId,
             questions,
-            sections
+            sections,
+            guidelines: processedGuidelines
         });
         const savedRule = await newRule.save();
 
         res.status(201).json({
             status: 201,
             message: 'RRLSV Rule created successfully.',
-            data: savedRule
         });
     } catch (error) {
         logger.error(`admin-createGLSV Error`, error.message);

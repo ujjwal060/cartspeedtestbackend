@@ -348,6 +348,7 @@ const filterAggregationRRLSV = async (locationIds, nearbyLocations) => {
             _id: 1,
             questions: 1,
             sections: 1,
+            guidelines:1,
             createdAt: 1
         }
     })

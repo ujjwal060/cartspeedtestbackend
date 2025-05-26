@@ -10,7 +10,7 @@ const router = express.Router();
 
 router.post('/addGLSVR',uploadToS3,createLSVRule);
 router.get('/getGLSV', getGLSVRules);
-router.post('/addRRLSVR', createRRLSV);
+router.post('/addRRLSVR',uploadToS3,createRRLSV);
 router.get('/getRRLSV', getRRLSVRules);
 
 export default router;

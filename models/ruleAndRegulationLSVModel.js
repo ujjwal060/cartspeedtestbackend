@@ -30,6 +30,21 @@ const sectionSchema = new mongoose.Schema({
   }
 });
 
+const guidelineSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true
+  },
+  description: {
+    type: String,
+    required: true
+  },
+  imageUrl: {
+    type: String,
+    required: true
+  }
+});
+
 const rulesAndRegulationSchema = new mongoose.Schema({
   locationId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -43,6 +58,7 @@ const rulesAndRegulationSchema = new mongoose.Schema({
   },
   questions: questionSchema,
   sections: [sectionSchema],
+  guidelines: [guidelineSchema],
   createdAt: {
     type: Date,
     default: Date.now
