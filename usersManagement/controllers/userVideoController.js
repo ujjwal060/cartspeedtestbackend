@@ -168,7 +168,7 @@ const updateVideoProgress = async (req, res) => {
                 if (!existingVideoProgress.isCompleted) {
                     existingVideoProgress.watchedDuration = watchedDuration;
 
-                    if (watchedDuration === video.durationTime) {
+                    if (formattedDuration === video.durationTime) {
                         existingVideoProgress.isCompleted = true;
                     }
                 }
