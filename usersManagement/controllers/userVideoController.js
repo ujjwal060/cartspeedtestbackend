@@ -126,7 +126,10 @@ const updateVideoProgress = async (req, res) => {
             return res.status(404).json({ status: 404, message: ['Video not found'] });
         }
 
-        const isCompleted = watchedDuration === video.durationTime;
+        const minutes = Math.floor(watchedDuration / 60);
+        const seconds = watchedDuration % 60;
+        const formattedDuration = `${minutes}m ${seconds}s`;
+        const isCompleted = formattedDuration === video.durationTime;
 
         let userProgress = await UserVideoProgress.findOne({ userId, locationId });
 
