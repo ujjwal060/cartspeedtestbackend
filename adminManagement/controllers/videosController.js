@@ -69,8 +69,9 @@ const getAllVideos = async (req, res) => {
     try {
         const { filters, sortField, sortBy, offset, limit } = req.body;
         const adminId = req.user.id;
+        const role = req.user.role;
 
-        let aggregation = getallAggregation({ filters, adminId, sortField, sortBy, offset, limit })
+        let aggregation = getallAggregation({ filters, adminId, role, sortField, sortBy, offset, limit })
 
         const [result] = await LocationVideo.aggregate(aggregation);
 
@@ -251,16 +252,18 @@ const getVideoDuration = async (url) => {
     });
 };
 
-const getallAggregation = ({ filters, adminId, sortField, sortBy, offset, limit }) => {
+const getallAggregation = ({ filters, adminId, role, sortField, sortBy, offset, limit }) => {
     const parsedOffset = parseInt(offset);
     const parsedLimit = parseInt(limit);
     const aggregation = [];
 
-    aggregation.push({
-        $match: {
-            admin: new mongoose.Types.ObjectId(adminId),
-        }
-    });
+    if (role === 'admin') {
+        aggregation.push({
+            $match: {
+                admin: new mongoose.Types.ObjectId(adminId),
+            }
+        });
+    }
 
     aggregation.push({
         $lookup: {
