@@ -129,7 +129,7 @@ const updateVideoProgress = async (req, res) => {
         const minutes = Math.floor(watchedDuration / 60);
         const seconds = watchedDuration % 60;
         const formattedDuration = `${minutes}m ${seconds}s`;
-        const isCompleted = watchedDuration === video.durationTime;
+        const isCompleted = formattedDuration === video.durationTime;
 
         let userProgress = await UserVideoProgress.findOne({ userId, locationId });
 
