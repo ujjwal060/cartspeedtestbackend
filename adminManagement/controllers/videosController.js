@@ -212,6 +212,10 @@ const checkExistingSection = async (req, res) => {
         })
 
         aggregation.push({
+            $unwind: "$sections"
+        })
+
+        aggregation.push({
             $match: {
                 'sections.sectionNumber': parseInt(sectionNumber)
             }
