@@ -228,7 +228,7 @@ const checkExistingSection = async (req, res) => {
         })
 
         const [result] = await LocationVideo.aggregate(aggregation);
-        const title = result?.title[0] || '';
+        const title = result?.title|| '';
 
         logger.info(`checkExistingSection: Found section title "${title}" for admin ${adminId}`);
 
