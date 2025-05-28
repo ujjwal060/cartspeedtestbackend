@@ -44,16 +44,19 @@ const createQuestion = async (req, res) => {
 const getAllQuestions = async (req, res) => {
     try {
         const adminId = req.user.id;
+        const role = req.user.role;
         const { filters, offset, limit } = req.body;
         const parsedOffset = parseInt(offset);
         const parsedLimit = parseInt(limit);
         let aggregation = [];
 
-        aggregation.push({
-            $match: {
-                adminId: new ObjectId(adminId)
-            }
-        });
+        if (role == 'admin') {
+            aggregation.push({
+                $match: {
+                    adminId: new ObjectId(adminId)
+                }
+            });
+        }
 
         aggregation.push({
             $lookup: {
