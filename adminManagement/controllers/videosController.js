@@ -210,10 +210,14 @@ const checkExistingSection = async (req, res) => {
                 admin: new mongoose.Types.ObjectId(adminId)
             }
         })
+        
+        aggregation.push({
+            $unwind: "$sections"
+        })
 
         aggregation.push({
             $match: {
-                'sections.sectionNumber': parseInt(sectionNumber)
+                'sections.sectionNumber': parseInt(sectionNumber - 1)
             }
         })
         aggregation.push({
