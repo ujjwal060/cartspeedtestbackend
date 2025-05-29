@@ -248,11 +248,22 @@ const checkExistingSection = async (req, res) => {
 
 const getVideoDuration = async (url) => {
     return new Promise((resolve, reject) => {
-        ffmpeg.ffprobe(url, (err, metadata) => {
-            if (err) return reject(err);
-            const duration = metadata.format.duration;
-            resolve(`${Math.floor(duration / 60)}m ${Math.floor(duration % 60)}s`);
-        });
+        try {
+            ffmpeg.ffprobe(url, (err, metadata) => {
+                if (err) {
+                    logger.warn(`Failed to get video duration: ${err.message}`);
+                    // Return a default duration if ffprobe fails
+                    resolve('0m 0s');
+                    return;
+                }
+                const duration = metadata.format.duration;
+                resolve(`${Math.floor(duration / 60)}m ${Math.floor(duration % 60)}s`);
+            });
+        } catch (error) {
+            logger.error(`Error in getVideoDuration: ${error.message}`);
+            // Return a default duration if there's an exception
+            resolve('0m 0s');
+        }
     });
 };
 
