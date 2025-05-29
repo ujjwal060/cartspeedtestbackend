@@ -44,6 +44,8 @@ const addVideos = async (req, res) => {
         };
 
         let locationVideo = await LocationVideo.findOne({ admin: adminId, location: locationId });
+        console.log(111,locationVideo);
+        
         if (!locationVideo) {
             locationVideo = new LocationVideo({
                 admin: adminId,
@@ -61,6 +63,8 @@ const addVideos = async (req, res) => {
 
     } catch (error) {
         logger.error(`addVideos Error`, error.message);
+        console.log(222,error);
+        
         return res.status(500).json({
             status: 500,
             message: [error.message],
