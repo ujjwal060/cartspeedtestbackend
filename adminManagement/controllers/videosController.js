@@ -6,6 +6,9 @@ import safityVideo from "../../models/saftyVideosModel.js";
 import { logger } from "../../utils/logger.js";
 import ffmpeg from 'fluent-ffmpeg';
 import ffprobeInstaller from '@ffprobe-installer/ffprobe';
+import fs from 'fs';
+import axios from 'axios';
+import tmp from 'tmp';
 
 ffmpeg.setFfprobePath(ffprobeInstaller.path);
 
@@ -41,6 +44,7 @@ const addVideos = async (req, res) => {
         };
 
         let locationVideo = await LocationVideo.findOne({ admin: adminId, location: locationId });
+        
         if (!locationVideo) {
             locationVideo = new LocationVideo({
                 admin: adminId,
@@ -228,7 +232,7 @@ const checkExistingSection = async (req, res) => {
         })
 
         const [result] = await LocationVideo.aggregate(aggregation);
-        const title = result?.title|| '';
+        const title = result?.title || '';
 
         logger.info(`checkExistingSection: Found section title "${title}" for admin ${adminId}`);
 
@@ -247,8 +251,31 @@ const checkExistingSection = async (req, res) => {
 }
 
 const getVideoDuration = async (url) => {
+    // return new Promise((resolve, reject) => {
+    //     ffmpeg.ffprobe(url, (err, metadata) => {
+    //         if (err) return reject(err);
+    //         const duration = metadata.format.duration;
+    //         resolve(`${Math.floor(duration / 60)}m ${Math.floor(duration % 60)}s`);
+    //     });
+    // });
+    const tempFile = tmp.fileSync({ postfix: '.mp4' });
+    const writer = fs.createWriteStream(tempFile.name);
+
+    const response = await axios({
+        url,
+        method: 'GET',
+        responseType: 'stream',
+    });
+
+    await new Promise((resolve, reject) => {
+        response.data.pipe(writer);
+        writer.on('finish', resolve);
+        writer.on('error', reject);
+    });
+
     return new Promise((resolve, reject) => {
-        ffmpeg.ffprobe(url, (err, metadata) => {
+        ffmpeg.ffprobe(tempFile.name, (err, metadata) => {
+            fs.unlinkSync(tempFile.name); // Delete temp file
             if (err) return reject(err);
             const duration = metadata.format.duration;
             resolve(`${Math.floor(duration / 60)}m ${Math.floor(duration % 60)}s`);
