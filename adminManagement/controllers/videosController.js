@@ -6,9 +6,9 @@ import safityVideo from "../../models/saftyVideosModel.js";
 import { logger } from "../../utils/logger.js";
 import ffmpeg from 'fluent-ffmpeg';
 import ffprobeInstaller from '@ffprobe-installer/ffprobe';
-const fs = require('fs');
-const axios = require('axios');
-const tmp = require('tmp');
+import fs from 'fs';
+import axios from 'axios';
+import tmp from 'tmp';
 
 ffmpeg.setFfprobePath(ffprobeInstaller.path);
 
@@ -259,7 +259,13 @@ const getVideoDuration = async (url) => {
     // });
     const tempFile = tmp.fileSync({ postfix: '.mp4' });
     const writer = fs.createWriteStream(tempFile.name);
-    const response = await axios({ url, method: 'GET', responseType: 'stream' });
+
+    const response = await axios({
+        url,
+        method: 'GET',
+        responseType: 'stream',
+    });
+
     await new Promise((resolve, reject) => {
         response.data.pipe(writer);
         writer.on('finish', resolve);
@@ -268,7 +274,7 @@ const getVideoDuration = async (url) => {
 
     return new Promise((resolve, reject) => {
         ffmpeg.ffprobe(tempFile.name, (err, metadata) => {
-            fs.unlinkSync(tempFile.name); // cleanup
+            fs.unlinkSync(tempFile.name); // Delete temp file
             if (err) return reject(err);
             const duration = metadata.format.duration;
             resolve(`${Math.floor(duration / 60)}m ${Math.floor(duration % 60)}s`);
