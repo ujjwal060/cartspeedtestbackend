@@ -33,7 +33,6 @@ const addVideos = async (req, res) => {
                 message: ['No location found for this admin.'],
             });
         }
-        console.log(111,location.location);
         const locationId = location.location;
         const durationTime = await getVideoDuration(url);
         const videoData = {
@@ -63,8 +62,6 @@ const addVideos = async (req, res) => {
 
     } catch (error) {
         logger.error(`addVideos Error`, error.message);
-        console.log(222,error);
-        
         return res.status(500).json({
             status: 500,
             message: [error.message],
