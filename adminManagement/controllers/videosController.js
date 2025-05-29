@@ -251,6 +251,8 @@ const getVideoDuration = async (url) => {
         try {
             ffmpeg.ffprobe(url, (err, metadata) => {
                 if (err) {
+                    console.log(111,err);
+                    
                     logger.warn(`Failed to get video duration: ${err.message}`);
                     // Return a default duration if ffprobe fails
                     resolve('0m 0s');
@@ -260,6 +262,7 @@ const getVideoDuration = async (url) => {
                 resolve(`${Math.floor(duration / 60)}m ${Math.floor(duration % 60)}s`);
             });
         } catch (error) {
+            console.log(222,error.message);
             logger.error(`Error in getVideoDuration: ${error.message}`);
             // Return a default duration if there's an exception
             resolve('0m 0s');
