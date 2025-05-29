@@ -33,6 +33,7 @@ const addVideos = async (req, res) => {
                 message: ['No location found for this admin.'],
             });
         }
+        console.log(111,location.location);
         const locationId = location.location;
         const durationTime = await getVideoDuration(url);
         const videoData = {
@@ -44,7 +45,6 @@ const addVideos = async (req, res) => {
         };
 
         let locationVideo = await LocationVideo.findOne({ admin: adminId, location: locationId });
-        console.log(111,locationVideo);
         
         if (!locationVideo) {
             locationVideo = new LocationVideo({
