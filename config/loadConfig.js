@@ -6,7 +6,7 @@ dotenv.config();
 
 const ENV =process.env.NODE_ENV || "production";
 const REGION = process.env.AWS_REGION || "us-east-1";
-const SECRET_NAME ="cart-secret";
+const SECRET_NAME ="cart";
 const secretsManager = new SecretsManagerClient({ region: REGION });
 
 const loadConfig = async () => {
@@ -25,7 +25,7 @@ const loadConfig = async () => {
             ACCESS_TOKEN_SECRET: secrets.ACCESS_TOKEN_SECRET,
             REFRESH_TOKEN_SECRET: secrets.REFRESH_TOKEN_SECRET,
             AWS_REGION: secrets.AWS_REGION || 'us-east-1',
-            SECRET_NAME:'cart-secret',
+            SECRET_NAME:'cart',
             EMAIL_USER:secrets.EMAIL_USER,
             EMAIL_PASS:secrets.EMAIL_PASS,
             AWS_ACCESS_KEY_ID:secrets.AWS_ACCESS_KEY_ID,
@@ -53,7 +53,7 @@ const loadConfig = async () => {
     ACCESS_TOKEN_SECRET: process.env.ACCESS_TOKEN_SECRET,
     REFRESH_TOKEN_SECRET: process.env.REFRESH_TOKEN_SECRET,
     AWS_REGION: process.env.AWS_REGION || 'us-east-1',
-    SECRET_NAME: process.env.SECRET_NAME || 'cart-secret',
+    SECRET_NAME: process.env.SECRET_NAME || 'cart',
     EMAIL_USER:process.env.EMAIL_USER,
     EMAIL_PASS:process.env.EMAIL_PASS,
     S3_BUCKET:process.env.S3_BUCKET,
