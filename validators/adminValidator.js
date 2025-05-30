@@ -27,13 +27,14 @@ const adminValidationSchema = Joi.object({
         'string.empty': 'Location is required.',
         'any.required': 'Location is required.',
     }),
-    latitude: Joi.number().required().messages({
-        'number.base': 'Latitude must be a number.',
-        'any.required': 'Latitude is required.'
+    zipCode: Joi.string().required().messages({
+        'string.base': 'Zip code must be a string.',
+        'string.empty': 'Zip code is required.',
+        'any.required': 'Zip code is required.',
     }),
-    longitude: Joi.number().required().messages({
-        'number.base': 'Longitude must be a number.',
-        'any.required': 'Longitude is required.'
+    geoJsonData: Joi.object().required().messages({
+        'object.base': 'GeoJsonData must be an object.',
+        'any.required': 'GeoJsonData is required.',
     }),
     password: Joi.string().min(6).max(128).required().messages({
         'string.base': 'Password must be a string.',
