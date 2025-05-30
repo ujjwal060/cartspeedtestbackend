@@ -44,7 +44,7 @@ const addVideos = async (req, res) => {
         };
 
         let locationVideo = await LocationVideo.findOne({ admin: adminId, location: locationId });
-        
+
         if (!locationVideo) {
             locationVideo = new LocationVideo({
                 admin: adminId,
@@ -410,8 +410,9 @@ const addSafityVideos = async (req, res) => {
 const getSaftyVideos = async (req, res) => {
     try {
         const adminId = req.user.id;
+        const role = req.user.role;
         const { offset, limit } = req.body;
-        let aggregation = await gateAggregationSaftyVideo({ adminId, offset, limit });
+        let aggregation = await gateAggregationSaftyVideo({ adminId, role, offset, limit });
 
         const result = await safityVideo.aggregate(aggregation);
 
@@ -433,16 +434,18 @@ const getSaftyVideos = async (req, res) => {
     }
 }
 
-const gateAggregationSaftyVideo = async ({ adminId, offset, limit }) => {
+const gateAggregationSaftyVideo = async ({ adminId, role, offset, limit }) => {
     const parsedOffset = parseInt(offset);
     const parsedLimit = parseInt(limit);
     const aggregation = [];
 
-    aggregation.push({
-        $match: {
-            adminId: new mongoose.Types.ObjectId(adminId),
-        }
-    });
+    if (role === 'admin') {
+        aggregation.push({
+            $match: {
+                adminId: new mongoose.Types.ObjectId(adminId),
+            }
+        });
+    }
 
     aggregation.push({
         $lookup: {
