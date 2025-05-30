@@ -12,7 +12,7 @@ import { loadConfig } from "../../config/loadConfig.js";
 
 const adminRegister = async (req, res) => {
     try {
-        const { name, email, locationName, latitude, longitude, password, role, mobile } = req.body;
+        const { name, email, locationName, zipCode, geoJsonData, role, password, mobile } = req.body;
         logger.info("Incoming request for admin registration", { name, email, role });
 
         if (role === 'superadmin') {
@@ -37,7 +37,7 @@ const adminRegister = async (req, res) => {
             }
         }
 
-        const result = await checkAndSaveLocation({ locationName, latitude, longitude });
+        const result = await checkAndSaveLocation({ locationName, zipCode, geoJsonData });
         if (!result.success) {
             logger.warn("Location validation failed", { message: result.message });
             return res.status(result.status).json({
@@ -135,7 +135,7 @@ const login = async (req, res) => {
                 token,
                 refreshToken,
                 id: admin._id,
-                role:admin.role
+                role: admin.role
             }
         });
 
@@ -351,49 +351,51 @@ const getProfileById = async (req, res) => {
     }
 };
 
-const checkAndSaveLocation = async ({ locationName, latitude, longitude }) => {
-    const MILES_TO_METERS = 1609.34;
-
+const checkAndSaveLocation = async ({ locationName, zipCode, geoJsonData }) => {
     try {
-        if (!locationName || latitude === undefined || longitude === undefined) {
+        if (!locationName || !zipCode || !geoJsonData) {
             return {
                 success: false,
                 status: 400,
-                message: ['Location name, latitude, and longitude are required']
+                message: ['Location name, zip code, and geoJsonData are required']
             };
         }
 
-        const nearbyLocations = await locationModel.aggregate([
-            {
-                $geoNear: {
-                    near: { type: 'Point', coordinates: [longitude, latitude] },
-                    distanceField: 'distance',
-                    spherical: true,
-                    maxDistance: 50 * MILES_TO_METERS
-                }
-            }
-        ]);
-
-        const locationIdsNearby = nearbyLocations.map(loc => loc._id);
-
-        const nearbyAdmin = await adminModel.findOne({
-            location: { $in: locationIdsNearby },
-            role: 'admin'
-        });
-
-        if (nearbyAdmin) {
+        if (
+            !geoJsonData.type || geoJsonData.type !== 'FeatureCollection' ||
+            !Array.isArray(geoJsonData.features) || geoJsonData.features.length === 0
+        ) {
             return {
                 success: false,
                 status: 400,
-                message: ['An admin already exists within 50 miles of this location']
+                message: ['geoJsonData must be a valid FeatureCollection with at least one feature']
+            };
+        }
+
+        const feature = geoJsonData.features[0];
+        if (!feature.geometry || !feature.geometry.type || !feature.geometry.coordinates) {
+            return {
+                success: false,
+                status: 400,
+                message: ['Feature geometry is missing or invalid']
+            };
+        }
+
+        const existingLocation = await locationModel.findOne({ zipCode });
+        if (existingLocation) {
+            return {
+                success: false,
+                status: 400,
+                message: ['Location with this zip code already exists']
             };
         }
 
         const newLocation = new locationModel({
             name: locationName,
-            coordinates: {
-                type: 'Point',
-                coordinates: [longitude, latitude]
+            zipCode: zipCode,
+            geometry: {
+                type: feature.geometry.type,
+                coordinates: feature.geometry.coordinates
             }
         });
 
@@ -474,8 +476,8 @@ const getAllAdmins = async (req, res) => {
         });
 
         aggregation.push({
-            $match:{
-                role:'admin'
+            $match: {
+                role: 'admin'
             }
         })
 
@@ -524,7 +526,11 @@ const getAllAdmins = async (req, res) => {
 
         aggregation.push({
             $project: {
-                password: 0 
+                name: 1,
+                email: 1,
+                mobile: 1,
+                role: 1,
+                'locationDetails.name': 1
             }
         });
 
