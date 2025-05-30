@@ -22,23 +22,7 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
-            steps {
-                script {
-                    sh '''
-                    echo "Running SonarQube analysis using Docker..."
-                    docker run --rm \
-                        -v $(pwd):/usr/src \
-                        --network host \
-                        sonarsource/sonar-scanner-cli:latest \
-                        -Dsonar.projectKey=social-ecom-back \
-                        -Dsonar.sources=/usr/src \
-                        -Dsonar.host.url=http://18.209.91.97:9000 \
-                        -Dsonar.login=${SONARTOKEN}
-                    '''
-                }
-            }
-        }
+
         stage('Login to Docker Hub') {
             steps {
                 script {
