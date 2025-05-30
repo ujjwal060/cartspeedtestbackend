@@ -24,17 +24,16 @@ const getGLSVRule = async (req, res) => {
         const userCoordinates = userLoc.coordinates.coordinates;
         logger.info('User Coordinates:', userCoordinates);
 
-        const nearbyLocations = await Location.aggregate([
-            {
-                $geoNear: {
-                    near: { type: "Point", coordinates: userCoordinates },
-                    distanceField: "distance",
-                    spherical: true,
-                    maxDistance: 80467.2,
-                    distanceMultiplier: 0.001
+        const nearbyLocations = await Location.findOne({
+            geometry: {
+                $geoIntersects: {
+                    $geometry: {
+                        type: "Point",
+                        coordinates: userCoordinates
+                    }
                 }
             }
-        ]);
+        });
 
         if (nearbyLocations.length === 0) {
             return res.status(404).json({
@@ -112,68 +111,68 @@ const filterAggregation = async (locationIds, nearbyLocations) => {
         $unwind: '$location'
     })
 
-    aggregation.push({
-        $addFields: {
-            'location.distance': {
-                $let: {
-                    vars: {
-                        locId: '$locationId'
-                    },
-                    in: {
-                        $arrayElemAt: [
-                            {
-                                $map: {
-                                    input: nearbyLocations,
-                                    as: 'nearLoc',
-                                    in: {
-                                        $cond: {
-                                            if: { $eq: ['$$nearLoc._id', '$$locId'] },
-                                            then: '$$nearLoc.distance',
-                                            else: null
-                                        }
-                                    }
-                                }
-                            },
-                            0
-                        ]
-                    }
-                }
-            },
-            'sections': {
-                $map: {
-                    input: '$sections',
-                    as: 'section',
-                    in: {
-                        $mergeObjects: [
-                            '$$section',
-                            {
-                                description: {
-                                    $replaceAll: {
-                                        input: {
-                                            $replaceAll: {
-                                                input: '$$section.description',
-                                                find: '<p>',
-                                                replacement: ''
-                                            }
-                                        },
-                                        find: '</p>',
-                                        replacement: ''
-                                    }
-                                }
-                            }
-                        ]
-                    }
-                }
-            }
-        }
-    })
+    // aggregation.push({
+    //     $addFields: {
+    //         'location.distance': {
+    //             $let: {
+    //                 vars: {
+    //                     locId: '$locationId'
+    //                 },
+    //                 in: {
+    //                     $arrayElemAt: [
+    //                         {
+    //                             $map: {
+    //                                 input: nearbyLocations,
+    //                                 as: 'nearLoc',
+    //                                 in: {
+    //                                     $cond: {
+    //                                         if: { $eq: ['$$nearLoc._id', '$$locId'] },
+    //                                         then: '$$nearLoc.distance',
+    //                                         else: null
+    //                                     }
+    //                                 }
+    //                             }
+    //                         },
+    //                         0
+    //                     ]
+    //                 }
+    //             }
+    //         },
+    //         'sections': {
+    //             $map: {
+    //                 input: '$sections',
+    //                 as: 'section',
+    //                 in: {
+    //                     $mergeObjects: [
+    //                         '$$section',
+    //                         {
+    //                             description: {
+    //                                 $replaceAll: {
+    //                                     input: {
+    //                                         $replaceAll: {
+    //                                             input: '$$section.description',
+    //                                             find: '<p>',
+    //                                             replacement: ''
+    //                                         }
+    //                                     },
+    //                                     find: '</p>',
+    //                                     replacement: ''
+    //                                 }
+    //                             }
+    //                         }
+    //                     ]
+    //                 }
+    //             }
+    //         }
+    //     }
+    // })
 
     aggregation.push({
         $project: {
             _id: 1,
             questions: 1,
             sections: 1,
-            guidelines:1,
+            guidelines: 1,
             createdAt: 1
         }
     })
@@ -199,17 +198,16 @@ const getRRLSVRule = async (req, res) => {
         const userCoordinates = userLoc.coordinates.coordinates;
         logger.info('User Coordinates:', userCoordinates);
 
-        const nearbyLocations = await Location.aggregate([
-            {
-                $geoNear: {
-                    near: { type: "Point", coordinates: userCoordinates },
-                    distanceField: "distance",
-                    spherical: true,
-                    maxDistance: 80467.2,
-                    distanceMultiplier: 0.001
+        const nearbyLocations = await Location.findOne({
+            geometry: {
+                $geoIntersects: {
+                    $geometry: {
+                        type: "Point",
+                        coordinates: userCoordinates
+                    }
                 }
             }
-        ]);
+        });
 
         if (nearbyLocations.length === 0) {
             return res.status(404).json({
@@ -287,68 +285,68 @@ const filterAggregationRRLSV = async (locationIds, nearbyLocations) => {
         $unwind: '$location'
     })
 
-    aggregation.push({
-        $addFields: {
-            'location.distance': {
-                $let: {
-                    vars: {
-                        locId: '$locationId'
-                    },
-                    in: {
-                        $arrayElemAt: [
-                            {
-                                $map: {
-                                    input: nearbyLocations,
-                                    as: 'nearLoc',
-                                    in: {
-                                        $cond: {
-                                            if: { $eq: ['$$nearLoc._id', '$$locId'] },
-                                            then: '$$nearLoc.distance',
-                                            else: null
-                                        }
-                                    }
-                                }
-                            },
-                            0
-                        ]
-                    }
-                }
-            },
-            'sections': {
-                $map: {
-                    input: '$sections',
-                    as: 'section',
-                    in: {
-                        $mergeObjects: [
-                            '$$section',
-                            {
-                                description: {
-                                    $replaceAll: {
-                                        input: {
-                                            $replaceAll: {
-                                                input: '$$section.description',
-                                                find: '<p>',
-                                                replacement: ''
-                                            }
-                                        },
-                                        find: '</p>',
-                                        replacement: ''
-                                    }
-                                }
-                            }
-                        ]
-                    }
-                }
-            }
-        }
-    })
+    // aggregation.push({
+    //     $addFields: {
+    //         'location.distance': {
+    //             $let: {
+    //                 vars: {
+    //                     locId: '$locationId'
+    //                 },
+    //                 in: {
+    //                     $arrayElemAt: [
+    //                         {
+    //                             $map: {
+    //                                 input: nearbyLocations,
+    //                                 as: 'nearLoc',
+    //                                 in: {
+    //                                     $cond: {
+    //                                         if: { $eq: ['$$nearLoc._id', '$$locId'] },
+    //                                         then: '$$nearLoc.distance',
+    //                                         else: null
+    //                                     }
+    //                                 }
+    //                             }
+    //                         },
+    //                         0
+    //                     ]
+    //                 }
+    //             }
+    //         },
+    //         'sections': {
+    //             $map: {
+    //                 input: '$sections',
+    //                 as: 'section',
+    //                 in: {
+    //                     $mergeObjects: [
+    //                         '$$section',
+    //                         {
+    //                             description: {
+    //                                 $replaceAll: {
+    //                                     input: {
+    //                                         $replaceAll: {
+    //                                             input: '$$section.description',
+    //                                             find: '<p>',
+    //                                             replacement: ''
+    //                                         }
+    //                                     },
+    //                                     find: '</p>',
+    //                                     replacement: ''
+    //                                 }
+    //                             }
+    //                         }
+    //                     ]
+    //                 }
+    //             }
+    //         }
+    //     }
+    // })
 
     aggregation.push({
         $project: {
             _id: 1,
             questions: 1,
             sections: 1,
-            guidelines:1,
+            guidelines: 1,
             createdAt: 1
         }
     })
