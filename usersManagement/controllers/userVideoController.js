@@ -126,7 +126,10 @@ const updateVideoProgress = async (req, res) => {
             return res.status(404).json({ status: 404, message: ['Video not found'] });
         }
 
-        const isCompleted = watchedDuration === video.durationTime;
+        const minutes = Math.floor(watchedDuration / 60);
+        const seconds = watchedDuration % 60;
+        const formattedDuration = `${minutes}m ${seconds}s`;
+        const isCompleted = formattedDuration === video.durationTime;
 
         let userProgress = await UserVideoProgress.findOne({ userId, locationId });
 
@@ -165,7 +168,7 @@ const updateVideoProgress = async (req, res) => {
                 if (!existingVideoProgress.isCompleted) {
                     existingVideoProgress.watchedDuration = watchedDuration;
 
-                    if (watchedDuration === video.durationTime) {
+                    if (formattedDuration === video.durationTime) {
                         existingVideoProgress.isCompleted = true;
                     }
                 }
@@ -352,8 +355,40 @@ const getVideoAggregation = async (locationIds, userId) => {
     });
 
     aggregation.push({
+        $lookup: {
+            from: "usertestattempts",
+            let: {
+                sectionId: "$sections._id",
+                locationId: "$_id",
+                userId: { $toObjectId: userId }
+            },
+            pipeline: [
+                {
+                    $match: {
+                        $expr: {
+                            $and: [
+                                { $eq: ["$userId", "$$userId"] },
+                                { $eq: ["$locationId", "$$locationId"] },
+                                { $eq: ["$sectionId", "$$sectionId"] }
+                            ]
+                        }
+                    }
+                }
+            ],
+            as: "testData"
+        }
+    });
+
+    aggregation.push({
         $unwind: {
             path: "$userProgress",
+            preserveNullAndEmptyArrays: true,
+        }
+    });
+
+    aggregation.push({
+        $unwind: {
+            path: "$testData",
             preserveNullAndEmptyArrays: true,
         }
     });
@@ -373,6 +408,10 @@ const getVideoAggregation = async (locationIds, userId) => {
                     durationTime: "$sections.durationTime",
                     isSectionCompleted: {
                         $ifNull: ["$userProgress.sections.isSectionCompleted", false]
+                    },
+                    test: {
+                        isSectionCompleted: { $ifNull: ["$testData.isSectionCompleted", false] },
+                        nextSectionUnlocked: { $ifNull: ["$testData.nextSectionUnlocked", false] }
                     },
                     videos: {
                         $map: {
@@ -409,6 +448,17 @@ const getVideoAggregation = async (locationIds, userId) => {
                             }
                         }
                     }
+                }
+            }
+        }
+    });
+
+    aggregation.push({
+        $addFields: {
+            sections: {
+                $sortArray: {
+                    input: "$sections",
+                    sortBy: { sectionNumber: 1 }
                 }
             }
         }
