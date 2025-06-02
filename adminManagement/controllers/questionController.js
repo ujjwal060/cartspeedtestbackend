@@ -58,6 +58,24 @@ const getAllQuestions = async (req, res) => {
             });
         }
 
+        if (role === 'superAdmin') {
+        aggregation.push({
+            $lookup: {
+                from: 'admins',
+                localField: 'adminId',
+                foreignField: '_id',
+                as: 'adminsData'
+            },
+        });
+
+        aggregation.push({
+            $unwind: {
+                path: '$adminsData',
+                preserveNullAndEmptyArrays: true,
+            }
+        });
+    }
+
         aggregation.push({
             $lookup: {
                 from: 'locations',
@@ -92,7 +110,8 @@ const getAllQuestions = async (req, res) => {
                 createdAt: 1,
                 updatedAt: 1,
                 locationName: '$locationDetails.name',
-                adminId: 1
+                adminId: 1,
+                adminName: role === 'superAdmin' ? '$adminsData.name' : null,
             }
         });
 

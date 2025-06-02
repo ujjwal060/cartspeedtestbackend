@@ -88,6 +88,7 @@ const getAllVideos = async (req, res) => {
             section: `section 0${item.section}`,
             sectionTitle: item.sectionTitle,
             video: item.video,
+            adminName: item.adminName
         }));
 
         logger.info(`Fetched ${formatted.length} videos for admin: ${adminId}`);
@@ -296,6 +297,32 @@ const getallAggregation = ({ filters, adminId, role, sortField, sortBy, offset, 
         });
     }
 
+    if (filters?.adminId) {
+        aggregation.push({
+            $match: {
+                admin: new mongoose.Types.ObjectId(filters?.adminId),
+            }
+        });
+    }
+
+    if (role === 'superAdmin') {
+        aggregation.push({
+            $lookup: {
+                from: 'admins',
+                localField: 'admin',
+                foreignField: '_id',
+                as: 'adminsData'
+            },
+        });
+
+        aggregation.push({
+            $unwind: {
+                path: '$adminsData',
+                preserveNullAndEmptyArrays: true,
+            }
+        });
+    }
+
     aggregation.push({
         $lookup: {
             from: 'locations',
@@ -312,12 +339,29 @@ const getallAggregation = ({ filters, adminId, role, sortField, sortBy, offset, 
         },
     });
 
+    if (filters?.locationName) {
+        aggregation.push({
+            $match: {
+                'locationInfo.name': { $regex: filters.locationName, $options: 'i' }
+            }
+        });
+    }
+
     aggregation.push({
         $unwind: {
             path: '$sections',
             preserveNullAndEmptyArrays: false,
         },
     });
+
+    if (filters?.section) {
+        const sectionNumber = parseInt(filters?.section);
+        aggregation.push({
+            $match: {
+                'sections.sectionNumber': sectionNumber
+            }
+        });
+    }
 
     aggregation.push({
         $unwind: {
@@ -326,6 +370,17 @@ const getallAggregation = ({ filters, adminId, role, sortField, sortBy, offset, 
         },
     });
 
+    if (filters?.title) {
+        aggregation.push({
+            $match: {
+                'sections.videos.title': { 
+                    $regex: filters?.title,
+                    $options: 'i'
+                }
+            }
+        });
+    }
+
     aggregation.push({
         $project: {
             locationName: '$locationInfo.name',
@@ -333,6 +388,7 @@ const getallAggregation = ({ filters, adminId, role, sortField, sortBy, offset, 
             sectionTitle: '$sections.title',
             sectionDurationTime: '$sections.durationTime',
             video: '$sections.videos',
+            adminName: role === 'superAdmin' ? '$adminsData.name' : null,
         },
     });
 
@@ -447,6 +503,24 @@ const gateAggregationSaftyVideo = async ({ adminId, role, offset, limit }) => {
         });
     }
 
+    if (role === 'superAdmin') {
+        aggregation.push({
+            $lookup: {
+                from: 'admins',
+                localField: 'adminId',
+                foreignField: '_id',
+                as: 'adminsData'
+            },
+        });
+
+        aggregation.push({
+            $unwind: {
+                path: '$adminsData',
+                preserveNullAndEmptyArrays: true,
+            }
+        });
+    }
+
     aggregation.push({
         $lookup: {
             from: 'locations',
@@ -489,6 +563,7 @@ const gateAggregationSaftyVideo = async ({ adminId, role, offset, limit }) => {
             url: 1,
             locationName: '$locationInfo.name',
             ...(role !== 'admin' && { adminName: '$adminInfo.name' }),
+            adminName: role === 'superAdmin' ? '$adminsData.name' : null,
         }
     });
 
