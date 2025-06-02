@@ -503,6 +503,24 @@ const gateAggregationSaftyVideo = async ({ adminId, role, offset, limit }) => {
         });
     }
 
+    if (role === 'superAdmin') {
+        aggregation.push({
+            $lookup: {
+                from: 'admins',
+                localField: 'adminId',
+                foreignField: '_id',
+                as: 'adminsData'
+            },
+        });
+
+        aggregation.push({
+            $unwind: {
+                path: '$adminsData',
+                preserveNullAndEmptyArrays: true,
+            }
+        });
+    }
+
     aggregation.push({
         $lookup: {
             from: 'locations',
@@ -545,6 +563,7 @@ const gateAggregationSaftyVideo = async ({ adminId, role, offset, limit }) => {
             url: 1,
             locationName: '$locationInfo.name',
             ...(role !== 'admin' && { adminName: '$adminInfo.name' }),
+            adminName: role === 'superAdmin' ? '$adminsData.name' : null,
         }
     });
 
