@@ -271,7 +271,7 @@ const deleteQuestion = async (req, res) => {
 
         const deletedQuestion = await QuestionModel.findOneAndDelete({
             _id: questionId,
-            adminId: adminId,
+            // adminId: new ObjectId(adminId),
         });
         return res.status(200).json({
             status: 200,
