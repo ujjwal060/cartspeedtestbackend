@@ -59,22 +59,40 @@ const getAllQuestions = async (req, res) => {
         }
 
         if (role === 'superAdmin') {
-        aggregation.push({
-            $lookup: {
-                from: 'admins',
-                localField: 'adminId',
-                foreignField: '_id',
-                as: 'adminsData'
-            },
-        });
+            aggregation.push({
+                $lookup: {
+                    from: 'admins',
+                    localField: 'adminId',
+                    foreignField: '_id',
+                    as: 'adminsData'
+                },
+            });
 
-        aggregation.push({
-            $unwind: {
-                path: '$adminsData',
-                preserveNullAndEmptyArrays: true,
+            aggregation.push({
+                $unwind: {
+                    path: '$adminsData',
+                    preserveNullAndEmptyArrays: true,
+                }
+            });
+        }
+
+        if (filters?.startDate || filters?.endDate) {
+            const dateRange = {};
+
+            if (filters.startDate) {
+                dateRange.$gte = new Date(new Date(filters.startDate).setHours(0, 0, 0, 0));
             }
-        });
-    }
+
+            if (filters.endDate) {
+                dateRange.$lte = new Date(new Date(filters.endDate).setHours(23, 59, 59, 999));
+            }
+
+            aggregation.push({
+                $match: {
+                    createdAt: dateRange
+                }
+            });
+        }
 
         aggregation.push({
             $lookup: {
@@ -91,6 +109,14 @@ const getAllQuestions = async (req, res) => {
                 preserveNullAndEmptyArrays: true
             }
         });
+
+        if (filters?.locationName) {
+            aggregation.push({
+                $match: {
+                    'locationDetails.name': { $regex: filters.locationName, $options: 'i' }
+                }
+            });
+        }
 
         if (filters?.sectionNumber) {
             aggregation.push({
