@@ -323,6 +323,24 @@ const getallAggregation = ({ filters, adminId, role, sortField, sortBy, offset, 
         });
     }
 
+    if (filters?.startDate || filters?.endDate) {
+        const dateRange = {};
+
+        if (filters.startDate) {
+            dateRange.$gte = new Date(new Date(filters.startDate).setHours(0, 0, 0, 0));
+        }
+
+        if (filters.endDate) {
+            dateRange.$lte = new Date(new Date(filters.endDate).setHours(23, 59, 59, 999));
+        }
+
+        aggregation.push({
+            $match: {
+                createdAt: dateRange
+            }
+        });
+    }
+
     aggregation.push({
         $lookup: {
             from: 'locations',
@@ -373,7 +391,7 @@ const getallAggregation = ({ filters, adminId, role, sortField, sortBy, offset, 
     if (filters?.title) {
         aggregation.push({
             $match: {
-                'sections.videos.title': { 
+                'sections.videos.title': {
                     $regex: filters?.title,
                     $options: 'i'
                 }
@@ -490,7 +508,7 @@ const getSaftyVideos = async (req, res) => {
     }
 }
 
-const gateAggregationSaftyVideo = async ({ adminId, role, offset, limit }) => {
+const gateAggregationSaftyVideo = async ({ filters, adminId, role, offset, limit }) => {
     const parsedOffset = parseInt(offset);
     const parsedLimit = parseInt(limit);
     const aggregation = [];
@@ -517,6 +535,35 @@ const gateAggregationSaftyVideo = async ({ adminId, role, offset, limit }) => {
             $unwind: {
                 path: '$adminsData',
                 preserveNullAndEmptyArrays: true,
+            }
+        });
+    }
+
+    if (filters?.startDate || filters?.endDate) {
+        const dateRange = {};
+
+        if (filters.startDate) {
+            dateRange.$gte = new Date(new Date(filters.startDate).setHours(0, 0, 0, 0));
+        }
+
+        if (filters.endDate) {
+            dateRange.$lte = new Date(new Date(filters.endDate).setHours(23, 59, 59, 999));
+        }
+
+        aggregation.push({
+            $match: {
+                createdAt: dateRange
+            }
+        });
+    }
+
+    if (filters?.title) {
+        aggregation.push({
+            $match: {
+                title: {
+                    $regex: filters?.title,
+                    $options: 'i'
+                }
             }
         });
     }
