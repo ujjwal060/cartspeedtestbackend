@@ -264,9 +264,33 @@ const getVideosForDropdown = async (req, res) => {
     }
 }
 
+const deleteQuestion = async (req, res) => {
+    try {
+        const adminId = req.user.id;
+        const { questionId } = req.params;
+
+        const deletedQuestion = await QuestionModel.findOneAndDelete({
+            _id: questionId,
+            adminId: adminId,
+        });
+        return res.status(200).json({
+            status: 200,
+            message: ['Question deleted successfully'],
+            data:deletedQuestion
+        });
+
+    } catch (error) {
+        logger.error(`daleteVideosForDropdown Error`, error.message);
+        return res.status(500).json({
+            status: 500,
+            message: [error.message],
+        });
+    }
+}
 export {
     createQuestion,
     getAllQuestions,
     updateQuestion,
-    getVideosForDropdown
+    getVideosForDropdown,
+    deleteQuestion
 }
