@@ -3,7 +3,8 @@ import {
     createQuestion,
     getAllQuestions,
     updateQuestion,
-    getVideosForDropdown
+    getVideosForDropdown,
+    deleteQuestion
 } from '../controllers/questionController.js'
 
 const router = express.Router();
@@ -11,6 +12,7 @@ const router = express.Router();
 router.post('/add',createQuestion);
 router.post('/getQA',getAllQuestions);
 router.put('/:id', updateQuestion);
-router.post('/getVideos',getVideosForDropdown)
+router.post('/getVideos',getVideosForDropdown);
+router.delete('/deleteQ/:questionId',deleteQuestion)
 
 export default router;
