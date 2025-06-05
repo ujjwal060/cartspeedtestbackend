@@ -42,9 +42,9 @@ const getGLSVRule = async (req, res) => {
             });
         }
 
-        const locationIds = nearbyLocations.map(loc => loc._id);
+        // const locationIds = nearbyLocations.map(loc => loc._id);
 
-        let aggregation = await filterAggregation(locationIds, nearbyLocations);
+        let aggregation = await filterAggregation(nearbyLocations);
 
         const lsvRules = await goodLSVRuleModel.aggregate(aggregation)
 
@@ -72,11 +72,11 @@ const getGLSVRule = async (req, res) => {
     }
 }
 
-const filterAggregation = async (locationIds, nearbyLocations) => {
+const filterAggregation = async (nearbyLocations) => {
     let aggregation = [];
     aggregation.push({
         $match: {
-            locationId: { $in: locationIds }
+            locationId:new ObjectId(nearbyLocations)
         }
     })
 
@@ -216,9 +216,9 @@ const getRRLSVRule = async (req, res) => {
             });
         }
 
-        const locationIds = nearbyLocations.map(loc => loc._id);
+        // const locationIds = nearbyLocations.map(loc => loc._id);
 
-        let aggregation = await filterAggregationRRLSV(locationIds, nearbyLocations);
+        let aggregation = await filterAggregationRRLSV(nearbyLocations);
 
         const lsvRules = await ruleRagulationLSVModel.aggregate(aggregation)
 
@@ -246,11 +246,11 @@ const getRRLSVRule = async (req, res) => {
     }
 }
 
-const filterAggregationRRLSV = async (locationIds, nearbyLocations) => {
+const filterAggregationRRLSV = async (nearbyLocations) => {
     let aggregation = [];
     aggregation.push({
         $match: {
-            locationId: { $in: locationIds }
+            locationId: new ObjectId(nearbyLocations)
         }
     })
 
