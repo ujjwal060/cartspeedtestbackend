@@ -35,8 +35,6 @@ const parseDurationToSeconds = (duration) => {
 
 const getVideos = async (req, res) => {
     try {
-        const MAX_DISTANCE_MI = 50;
-        const METERS_PER_MILE = 1609.34;
         const userId = req.user.userId;
         const userCurrentLocation = await UserLocation.findOne({ userId, isCurrent: true });
 
@@ -46,23 +44,22 @@ const getVideos = async (req, res) => {
 
         const coordinates = userCurrentLocation.coordinates.coordinates;
 
-        const nearbyLocations = await location.find({
-            coordinates: {
-                $nearSphere: {
+        const nearbyLocations = await location.findOne({
+            geometry: {
+                $geoIntersects: {
                     $geometry: {
                         type: "Point",
                         coordinates: coordinates
-                    },
-                    $maxDistance: MAX_DISTANCE_MI * METERS_PER_MILE,
+                    }
                 }
             }
         });
 
-        if (!nearbyLocations.length) {
+        if (!nearbyLocations) {
             return res.status(404).json({ message: ['No nearby locations found'] });
         }
 
-        const locationIds = nearbyLocations.map(loc => loc._id);
+        const locationIds = [nearbyLocations._id];
         const aggregation = await getVideoAggregation(locationIds, userId);
         const locationVideos = await LocationVideo.aggregate(aggregation);
 
@@ -485,17 +482,16 @@ const getSaftyVideo = async (req, res) => {
         const userCoordinates = userLoc.coordinates.coordinates;
         logger.info('User Coordinates:', userCoordinates);
 
-        const nearbyLocations = await location.aggregate([
-            {
-                $geoNear: {
-                    near: { type: "Point", coordinates: userCoordinates },
-                    distanceField: "distance",
-                    spherical: true,
-                    maxDistance: 80467.2,
-                    distanceMultiplier: 0.001
+        const nearbyLocations = await location.findOne({
+            geometry: {
+                $geoIntersects: {
+                    $geometry: {
+                        type: "Point",
+                        coordinates: userCoordinates
+                    }
                 }
             }
-        ]);
+        });
 
         if (nearbyLocations.length === 0) {
             return res.status(404).json({
@@ -504,7 +500,7 @@ const getSaftyVideo = async (req, res) => {
             });
         }
 
-        const locationIds = nearbyLocations.map(loc => loc._id);
+        const locationIds = [nearbyLocations._id];
         let aggregation = await saftyVideoAggregation(locationIds, nearbyLocations);
 
         const videos = await safityVideo.aggregate(aggregation);
@@ -555,35 +551,35 @@ const saftyVideoAggregation = async (locationIds, nearbyLocations) => {
         $unwind: '$location'
     });
 
-    aggregation.push({
-        $addFields: {
-            'location.distance': {
-                $let: {
-                    vars: {
-                        locId: '$locationId'
-                    },
-                    in: {
-                        $arrayElemAt: [
-                            {
-                                $map: {
-                                    input: nearbyLocations,
-                                    as: 'nearLoc',
-                                    in: {
-                                        $cond: {
-                                            if: { $eq: ['$$nearLoc._id', '$$locId'] },
-                                            then: '$$nearLoc.distance',
-                                            else: null
-                                        }
-                                    }
-                                }
-                            },
-                            0
-                        ]
-                    }
-                }
-            }
-        }
-    });
+    // aggregation.push({
+    //     $addFields: {
+    //         'location.distance': {
+    //             $let: {
+    //                 vars: {
+    //                     locId: '$locationId'
+    //                 },
+    //                 in: {
+    //                     $arrayElemAt: [
+    //                         {
+    //                             $map: {
+    //                                 input: nearbyLocations,
+    //                                 as: 'nearLoc',
+    //                                 in: {
+    //                                     $cond: {
+    //                                         if: { $eq: ['$$nearLoc._id', '$$locId'] },
+    //                                         then: '$$nearLoc.distance',
+    //                                         else: null
+    //                                     }
+    //                                 }
+    //                             }
+    //                         },
+    //                         0
+    //                     ]
+    //                 }
+    //             }
+    //         }
+    //     }
+    // });
 
     aggregation.push({
         $group: {

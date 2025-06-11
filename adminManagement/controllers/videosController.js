@@ -44,7 +44,7 @@ const addVideos = async (req, res) => {
         };
 
         let locationVideo = await LocationVideo.findOne({ admin: adminId, location: locationId });
-        
+
         if (!locationVideo) {
             locationVideo = new LocationVideo({
                 admin: adminId,
@@ -88,6 +88,7 @@ const getAllVideos = async (req, res) => {
             section: `section 0${item.section}`,
             sectionTitle: item.sectionTitle,
             video: item.video,
+            adminName: item.adminName
         }));
 
         logger.info(`Fetched ${formatted.length} videos for admin: ${adminId}`);
@@ -296,6 +297,50 @@ const getallAggregation = ({ filters, adminId, role, sortField, sortBy, offset, 
         });
     }
 
+    if (filters?.adminId) {
+        aggregation.push({
+            $match: {
+                admin: new mongoose.Types.ObjectId(filters?.adminId),
+            }
+        });
+    }
+
+    if (role === 'superAdmin') {
+        aggregation.push({
+            $lookup: {
+                from: 'admins',
+                localField: 'admin',
+                foreignField: '_id',
+                as: 'adminsData'
+            },
+        });
+
+        aggregation.push({
+            $unwind: {
+                path: '$adminsData',
+                preserveNullAndEmptyArrays: true,
+            }
+        });
+    }
+
+    if (filters?.startDate || filters?.endDate) {
+        const dateRange = {};
+
+        if (filters.startDate) {
+            dateRange.$gte = new Date(new Date(filters.startDate).setHours(0, 0, 0, 0));
+        }
+
+        if (filters.endDate) {
+            dateRange.$lte = new Date(new Date(filters.endDate).setHours(23, 59, 59, 999));
+        }
+
+        aggregation.push({
+            $match: {
+                createdAt: dateRange
+            }
+        });
+    }
+
     aggregation.push({
         $lookup: {
             from: 'locations',
@@ -312,12 +357,29 @@ const getallAggregation = ({ filters, adminId, role, sortField, sortBy, offset, 
         },
     });
 
+    if (filters?.locationName) {
+        aggregation.push({
+            $match: {
+                'locationInfo.name': { $regex: filters.locationName, $options: 'i' }
+            }
+        });
+    }
+
     aggregation.push({
         $unwind: {
             path: '$sections',
             preserveNullAndEmptyArrays: false,
         },
     });
+
+    if (filters?.section) {
+        const sectionNumber = parseInt(filters?.section);
+        aggregation.push({
+            $match: {
+                'sections.sectionNumber': sectionNumber
+            }
+        });
+    }
 
     aggregation.push({
         $unwind: {
@@ -326,6 +388,17 @@ const getallAggregation = ({ filters, adminId, role, sortField, sortBy, offset, 
         },
     });
 
+    if (filters?.title) {
+        aggregation.push({
+            $match: {
+                'sections.videos.title': {
+                    $regex: filters?.title,
+                    $options: 'i'
+                }
+            }
+        });
+    }
+
     aggregation.push({
         $project: {
             locationName: '$locationInfo.name',
@@ -333,6 +406,7 @@ const getallAggregation = ({ filters, adminId, role, sortField, sortBy, offset, 
             sectionTitle: '$sections.title',
             sectionDurationTime: '$sections.durationTime',
             video: '$sections.videos',
+            adminName: role === 'superAdmin' ? '$adminsData.name' : null,
         },
     });
 
@@ -410,8 +484,9 @@ const addSafityVideos = async (req, res) => {
 const getSaftyVideos = async (req, res) => {
     try {
         const adminId = req.user.id;
+        const role = req.user.role;
         const { offset, limit } = req.body;
-        let aggregation = await gateAggregationSaftyVideo({ adminId, offset, limit });
+        let aggregation = await gateAggregationSaftyVideo({ adminId, role, offset, limit });
 
         const result = await safityVideo.aggregate(aggregation);
 
@@ -433,21 +508,70 @@ const getSaftyVideos = async (req, res) => {
     }
 }
 
-const gateAggregationSaftyVideo = async ({ adminId, offset, limit }) => {
+const gateAggregationSaftyVideo = async ({ filters, adminId, role, offset, limit }) => {
     const parsedOffset = parseInt(offset);
     const parsedLimit = parseInt(limit);
     const aggregation = [];
 
-    aggregation.push({
-        $match: {
-            adminId: new mongoose.Types.ObjectId(adminId),
+    if (role === 'admin') {
+        aggregation.push({
+            $match: {
+                adminId: new mongoose.Types.ObjectId(adminId),
+            }
+        });
+    }
+
+    if (role === 'superAdmin') {
+        aggregation.push({
+            $lookup: {
+                from: 'admins',
+                localField: 'adminId',
+                foreignField: '_id',
+                as: 'adminsData'
+            },
+        });
+
+        aggregation.push({
+            $unwind: {
+                path: '$adminsData',
+                preserveNullAndEmptyArrays: true,
+            }
+        });
+    }
+
+    if (filters?.startDate || filters?.endDate) {
+        const dateRange = {};
+
+        if (filters.startDate) {
+            dateRange.$gte = new Date(new Date(filters.startDate).setHours(0, 0, 0, 0));
         }
-    });
+
+        if (filters.endDate) {
+            dateRange.$lte = new Date(new Date(filters.endDate).setHours(23, 59, 59, 999));
+        }
+
+        aggregation.push({
+            $match: {
+                createdAt: dateRange
+            }
+        });
+    }
+
+    if (filters?.title) {
+        aggregation.push({
+            $match: {
+                title: {
+                    $regex: filters?.title,
+                    $options: 'i'
+                }
+            }
+        });
+    }
 
     aggregation.push({
         $lookup: {
             from: 'locations',
-            localField: 'location',
+            localField: 'locationId',
             foreignField: '_id',
             as: 'locationInfo',
         },
@@ -460,6 +584,24 @@ const gateAggregationSaftyVideo = async ({ adminId, offset, limit }) => {
         },
     });
 
+    if (role !== 'admin') {
+        aggregation.push({
+            $lookup: {
+                from: 'admins',
+                localField: 'adminId',
+                foreignField: '_id',
+                as: 'adminInfo',
+            },
+        });
+
+        aggregation.push({
+            $unwind: {
+                path: '$adminInfo',
+                preserveNullAndEmptyArrays: true,
+            },
+        });
+    }
+
     aggregation.push({
         $project: {
             title: 1,
@@ -467,6 +609,8 @@ const gateAggregationSaftyVideo = async ({ adminId, offset, limit }) => {
             durationTime: 1,
             url: 1,
             locationName: '$locationInfo.name',
+            ...(role !== 'admin' && { adminName: '$adminInfo.name' }),
+            adminName: role === 'superAdmin' ? '$adminsData.name' : null,
         }
     });
 

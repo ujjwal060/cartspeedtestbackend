@@ -58,6 +58,42 @@ const getAllQuestions = async (req, res) => {
             });
         }
 
+        if (role === 'superAdmin') {
+            aggregation.push({
+                $lookup: {
+                    from: 'admins',
+                    localField: 'adminId',
+                    foreignField: '_id',
+                    as: 'adminsData'
+                },
+            });
+
+            aggregation.push({
+                $unwind: {
+                    path: '$adminsData',
+                    preserveNullAndEmptyArrays: true,
+                }
+            });
+        }
+
+        if (filters?.startDate || filters?.endDate) {
+            const dateRange = {};
+
+            if (filters.startDate) {
+                dateRange.$gte = new Date(new Date(filters.startDate).setHours(0, 0, 0, 0));
+            }
+
+            if (filters.endDate) {
+                dateRange.$lte = new Date(new Date(filters.endDate).setHours(23, 59, 59, 999));
+            }
+
+            aggregation.push({
+                $match: {
+                    createdAt: dateRange
+                }
+            });
+        }
+
         aggregation.push({
             $lookup: {
                 from: 'locations',
@@ -73,6 +109,14 @@ const getAllQuestions = async (req, res) => {
                 preserveNullAndEmptyArrays: true
             }
         });
+
+        if (filters?.locationName) {
+            aggregation.push({
+                $match: {
+                    'locationDetails.name': { $regex: filters.locationName, $options: 'i' }
+                }
+            });
+        }
 
         if (filters?.sectionNumber) {
             aggregation.push({
@@ -92,7 +136,8 @@ const getAllQuestions = async (req, res) => {
                 createdAt: 1,
                 updatedAt: 1,
                 locationName: '$locationDetails.name',
-                adminId: 1
+                adminId: 1,
+                adminName: role === 'superAdmin' ? '$adminsData.name' : null,
             }
         });
 
@@ -219,9 +264,33 @@ const getVideosForDropdown = async (req, res) => {
     }
 }
 
+const deleteQuestion = async (req, res) => {
+    try {
+        const adminId = req.user.id;
+        const { questionId } = req.params;
+
+        const deletedQuestion = await QuestionModel.findOneAndDelete({
+            _id: questionId,
+            // adminId: new ObjectId(adminId),
+        });
+        return res.status(200).json({
+            status: 200,
+            message: ['Question deleted successfully'],
+            data:deletedQuestion
+        });
+
+    } catch (error) {
+        logger.error(`daleteVideosForDropdown Error`, error.message);
+        return res.status(500).json({
+            status: 500,
+            message: [error.message],
+        });
+    }
+}
 export {
     createQuestion,
     getAllQuestions,
     updateQuestion,
-    getVideosForDropdown
+    getVideosForDropdown,
+    deleteQuestion
 }
