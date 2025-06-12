@@ -12,13 +12,33 @@ const certificateSchema = new Schema({
     ref: 'Location',
     required: true
   },
-  totalScore: {
-    type: Number,
+  certificateNumber: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  email: {
+    type: String,
     required: true
   },
-  grade: {
+  certificateName: {
     type: String,
-    enum: ['A+', 'A', 'B', 'C', 'D'],
+    required: true
+  },
+  certificateIssuedBy: {
+    type: String,
+    default: "CARTIE APP"
+  },
+  issueDate: {
+    type: Date,
+    required: true
+  },
+  certificateUrl: {
+    type: String,
+    required: false // Optional for now, will be generated later
+  },
+  validUntil: {
+    type: Date,
     required: true
   },
   issuedAt: {
