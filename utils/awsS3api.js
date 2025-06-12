@@ -79,6 +79,19 @@ const uploadToS3 = async (req, res, next) => {
   }
 };
 
+const uploadFile = async (buffer, key, contentType) => {
+  const s3 = await getS3Client();
+  const params = {
+    Bucket: config.S3_BUCKET,
+    Key: key,
+    Body: buffer,
+    ContentType: contentType,
+  };
+  await s3.putObject(params);
+  return `https://${config.S3_BUCKET}.s3.${config.AWS_REGION}.amazonaws.com/${params.Key}`;
+}
+
 export {
-    uploadToS3
+    uploadToS3,
+    uploadFile
 }
