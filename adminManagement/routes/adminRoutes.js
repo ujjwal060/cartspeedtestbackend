@@ -7,6 +7,7 @@ import questionRoutes from "./questionRoutes.js";
 import usersRoutes from "./usersRoutes.js";
 import dashboardRoutes from "./dashboardRoutes.js";
 import LSVRuleRoutes from "./LSVRuleRoutes.js";
+import CertificateRoutes from "./certificateRoutes.js";
 
 const router = express.Router();
 
@@ -17,5 +18,6 @@ router.use('/admin/QA',verifyTokenMiddleware,questionRoutes);
 router.use('/admin/user',verifyTokenMiddleware,usersRoutes);
 router.use('/admin/dashData',verifyTokenMiddleware,dashboardRoutes);
 router.use('/admin/lsv',verifyTokenMiddleware,LSVRuleRoutes);
+router.use('/admin/cert',verifyTokenMiddleware,CertificateRoutes);
 
 export default router;
