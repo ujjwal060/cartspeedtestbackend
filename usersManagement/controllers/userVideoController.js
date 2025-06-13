@@ -461,6 +461,30 @@ const getVideoAggregation = async (locationIds, userId) => {
         }
     });
 
+    aggregation.push({
+        $addFields: {
+            enrolled: {
+                $eq: [
+                    {
+                        $size: {
+                            $filter: {
+                                input: "$sections",
+                                as: "section",
+                                cond: {
+                                    $and: [
+                                        { $eq: ["$$section.test.isSectionCompleted", true] },
+                                        { $eq: ["$$section.test.nextSectionUnlocked", true] }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    { $size: "$sections" }
+                ]
+            }
+        }
+    });
+
     return aggregation;
 };
 
