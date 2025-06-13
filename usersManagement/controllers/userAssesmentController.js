@@ -3,7 +3,6 @@ const { ObjectId } = mongoose.Types;
 import UserVideoProgress from '../../models/UserVideoProgress.js';
 import UserTestAttempts from '../../models/userTestModel.js';
 import QuestionModel from '../../models/questionModel.js';
-import CounterModel from '../../models/CounterModel.js';
 import CertificateModel from '../../models/CertificateModel.js';
 import UserModel from '../../models/userModel.js';
 import LocationModel from '../../models/locationModel.js';
@@ -101,7 +100,7 @@ const submitTestAttempt = async (req, res) => {
         );
 
         if (todayAttempts.length >= 3) {
-            return res.status(400).json({ message: "You have reached today's 3 attempt limit" });
+            return res.status(400).json({ status: 400, message: ["You have reached today's 3 attempt limit"] });
         }
 
         const attemptNumber = userTest.attempts.length + 1;
@@ -126,7 +125,8 @@ const submitTestAttempt = async (req, res) => {
         await userTest.save();
 
         return res.status(200).json({
-            message: "Attempt submitted successfully",
+            message: ["Attempt submitted successfully"],
+            status: 200,
             data: {
                 score,
                 isPassed,
@@ -263,13 +263,14 @@ const enrollForCertificate = async (req, res) => {
             LocationModel.findById(locationId)
         ]);
 
-        if (!user) return res.status(404).json({ message: "User not found." });
-        if (!location) return res.status(404).json({ message: "Location not found." });
+        if (!user) return res.status(404).json({ status: 404, message: ["User not found."] });
+        if (!location) return res.status(404).json({ status: 404, message: ["Location not found."] });
 
         const existing = await CertificateModel.findOne({ userId, locationId });
         if (existing) {
             return res.status(200).json({
-                message: "Certificate already generated.",
+                message: ["Certificate already generated."],
+                status: 200,
                 data: existing,
             });
         }
@@ -293,8 +294,8 @@ const enrollForCertificate = async (req, res) => {
 
         const certificateUrl = await generateCertificateImage({
             certificateName: newCertificate.certificateName,
-            locationName:location.name,
-            email:user.email,
+            locationName: location.name,
+            email: user.email,
             certificateNumber: newCertificate.certificateNumber,
             issueDate: newCertificate.issueDate,
             validUntil: newCertificate.validUntil
@@ -306,7 +307,8 @@ const enrollForCertificate = async (req, res) => {
         logger.info(`Certificate generated for user: ${userId}, cert#: ${certificateNumber}`);
 
         return res.status(200).json({
-            message: "Certificate generated successfully.",
+            message: ["Certificate generated successfully."],
+            status: 200,
             data: newCertificate
         });
 
@@ -318,8 +320,65 @@ const enrollForCertificate = async (req, res) => {
         });
     }
 };
+
+const getAllCerificate = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        let aggregation = [];
+
+        aggregation.push({
+            $match: {
+                userId: new ObjectId(userId)
+            }
+        })
+
+        aggregation.push({
+            $lookup: {
+                from: 'locations',
+                localField: 'locationId',
+                foreignField: '_id',
+                as: 'locationData'
+            }
+        })
+
+        aggregation.push({
+            $unwind: {
+                path: '$locationData',
+                preserveNullAndEmptyArrays: true
+            }
+        })
+        aggregation.push({
+            $project: {
+                _id: 1,
+                locationId: 1,
+                certificateNumber: 1,
+                certificateName: 1,
+                issueDate: 1,
+                certificateUrl: 1,
+                validUntil: 1,
+                locationName: '$locationData.name'
+            }
+        })
+
+        const result = await CertificateModel.aggregate(aggregation);
+
+        return res.status(200).json({
+            satus: 200,
+            message: ["get all certificates"],
+            data: result
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            status: 500,
+            message: [error.message],
+        });
+    }
+}
+
 export {
     getAssesmentForUser,
     submitTestAttempt,
-    enrollForCertificate
+    enrollForCertificate,
+    getAllCerificate
 }
