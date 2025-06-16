@@ -33,6 +33,12 @@ const certificateSchema = new Schema({
     type: Date,
     required: true
   },
+  status:{
+    type:String,
+    require:true,
+    enum:['Active','Expired'],
+    default:'Active'
+  },
   certificateUrl: {
     type: String,
     required: false // Optional for now, will be generated later

@@ -287,6 +287,7 @@ const enrollForCertificate = async (req, res) => {
             certificateNumber,
             certificateName: `Certificate of Completion for, ${location.name}`,
             certificateIssuedBy: "CARTIE APP",
+            status:'Active',
             issueDate,
             validUntil,
             certificateUrl: ""
@@ -356,6 +357,7 @@ const getAllCerificate = async (req, res) => {
                 issueDate: 1,
                 certificateUrl: 1,
                 validUntil: 1,
+                status:1,
                 locationName: '$locationData.name'
             }
         })
