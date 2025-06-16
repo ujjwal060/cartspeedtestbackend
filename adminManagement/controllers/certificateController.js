@@ -55,6 +55,22 @@ const getAllCertificateAdmin = async (req, res) => {
         });
 
         aggregation.push({
+            $lookup: {
+                from: 'users',
+                localField: 'userId',
+                foreignField: '_id',
+                as: 'userData'
+            }
+        })
+
+        aggregation.push({
+            $unwind: {
+                path: '$userData',
+                preserveNullAndEmptyArrays: true
+            }
+        })
+
+        aggregation.push({
             $project: {
                 _id: 1,
                 certificateNumber: 1,
@@ -63,7 +79,8 @@ const getAllCertificateAdmin = async (req, res) => {
                 validUntil: 1,
                 certificateUrl: 1,
                 email: 1,
-                status:1,
+                status: 1,
+                userName: '$userData.name',
                 locationId: 1,
                 locationName: '$locationData.name',
                 adminName: '$adminData.name'
