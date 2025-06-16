@@ -21,7 +21,7 @@ const getUserStats = async (req, res) => {
                 topStates: [
                     {
                         $group: {
-                            _id: "$state",
+                            _id: "$address",
                             count: { $sum: 1 }
                         }
                     },
