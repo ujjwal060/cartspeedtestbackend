@@ -63,6 +63,7 @@ const getAllCertificateAdmin = async (req, res) => {
                 validUntil: 1,
                 certificateUrl: 1,
                 email: 1,
+                status:1,
                 locationId: 1,
                 locationName: '$locationData.name',
                 adminName: '$adminData.name'
