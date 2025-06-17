@@ -172,7 +172,7 @@ const generateCertificateImage = async (certificateData) => {
         return s3Url;
     } catch (error) {
         console.error("Error generating certificate image:", error);
-        throw new Error("Failed to generate certificate image.");
+        throw new Error(error.message);
     }
 };
 
