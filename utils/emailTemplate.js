@@ -20,6 +20,8 @@ const emailTamplates = {
         
         Email: ${email}
         Password: ${password}
+
+        You can log in here: ${'http://18.209.91.97:1114'}
         
         Please change your password after logging in.
         
