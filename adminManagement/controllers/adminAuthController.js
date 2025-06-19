@@ -530,6 +530,7 @@ const getAllAdmins = async (req, res) => {
                 email: 1,
                 mobile: 1,
                 role: 1,
+                isActive:1,
                 'locationDetails.name': 1
             }
         });
