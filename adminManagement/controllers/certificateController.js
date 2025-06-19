@@ -31,6 +31,7 @@ const getAllCertificateAdmin = async (req, res) => {
         const sortOrder = sort?.order || 1;
 
         let aggregation = [];
+        let matchAdminStage = [];
 
         if (role === 'admin') {
             const adminData = await adminModel.findById(adminId);
@@ -42,18 +43,21 @@ const getAllCertificateAdmin = async (req, res) => {
                 });
             }
 
-            aggregation.push({
-                $match: {
-                    locationId: new ObjectId(adminData.location)
-                }
-            });
+            matchAdminStage = {
+                locationId: new ObjectId(adminData.location)
+            };
         }
 
         const dateMatch = {};
         if (startDate) dateMatch.issueDate = { ...dateMatch.issueDate, $gte: new Date(startDate) };
         if (endDate) dateMatch.issueDate = { ...dateMatch.issueDate, $lte: new Date(endDate) };
-        if (Object.keys(dateMatch).length > 0) {
-            aggregation.push({ $match: dateMatch });
+        // if (Object.keys(dateMatch).length > 0) {
+        //     aggregation.push({ $match: dateMatch });
+        // }
+
+        const combinedMatch = { ...matchAdminStage, ...dateMatch };
+        if (Object.keys(combinedMatch).length > 0) {
+            aggregation.push({ $match: combinedMatch });
         }
 
         aggregation.push({
@@ -160,26 +164,33 @@ const getAllCertificateAdmin = async (req, res) => {
         const [result] = await CertificateModel.aggregate(aggregation);
         const total = result.totalCount[0]?.count || 0;
 
-        const statsAggregation = await CertificateModel.aggregate([
-            {
-                $group: {
-                    _id: null,
-                    totalActive: {
-                        $sum: { $cond: [{ $eq: ["$status", "Active"] }, 1, 0] }
-                    },
-                    totalExpired: {
-                        $sum: { $cond: [{ $eq: ["$status", "Expired"] }, 1, 0] }
-                    }
-                }
-            },
-            {
-                $project: {
-                    totalActive: 1,
-                    totalExpired: 1,
-                    totalCertificate: { $add: ["$totalActive", "$totalExpired"] }
+        const statsMatch = [];
+        if (matchAdminStage && Object.keys(matchAdminStage).length > 0) {
+            statsMatch.push({ $match: combinedMatch });
+
+        }
+
+        statsMatch.push({
+            $group: {
+                _id: null,
+                totalActive: {
+                    $sum: { $cond: [{ $eq: ["$status", "Active"] }, 1, 0] }
+                },
+                totalExpired: {
+                    $sum: { $cond: [{ $eq: ["$status", "Expired"] }, 1, 0] }
                 }
             }
-        ]);
+        })
+
+        statsMatch.push({
+            $project: {
+                totalActive: 1,
+                totalExpired: 1,
+                totalCertificate: { $add: ["$totalActive", "$totalExpired"] }
+            }
+        })
+
+        const statsAggregation = await CertificateModel.aggregate(statsMatch);
 
         const stats = statsAggregation[0] || {};
         const totalActive = stats.totalActive || 0;
