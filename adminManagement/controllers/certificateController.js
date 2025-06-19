@@ -20,6 +20,7 @@ const getAllCertificateAdmin = async (req, res) => {
         const {
             userName,
             locationName,
+            certificateNumber,
             status,
             startDate,
             endDate,
@@ -113,7 +114,13 @@ const getAllCertificateAdmin = async (req, res) => {
             });
         }
 
-        if (status) {
+        if (certificateNumber) {
+            aggregation.push({
+                $match: { certificateNumber }
+            });
+        }
+
+          if (status) {
             aggregation.push({
                 $match: { status }
             });
