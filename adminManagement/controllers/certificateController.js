@@ -66,7 +66,7 @@ const getAllCertificateAdmin = async (req, res) => {
         });
 
         aggregation.push({ $unwind: "$locationData" });
-         if (locationName) {
+        if (locationName) {
             aggregation.push({
                 $match: {
                     'locationData.name': { $regex: locationName, $options: 'i' }
@@ -120,7 +120,7 @@ const getAllCertificateAdmin = async (req, res) => {
             });
         }
 
-          if (status) {
+        if (status) {
             aggregation.push({
                 $match: { status }
             });
@@ -153,17 +153,29 @@ const getAllCertificateAdmin = async (req, res) => {
                 ],
                 totalCount: [
                     { $count: 'count' }
+                ],
+                totalActive: [
+                    { $match: { status: 'Active' } },
+                    { $count: 'count' }
+                ],
+                totalExpired: [
+                    { $match: { status: 'Expired' } },
+                    { $count: 'count' }
                 ]
             }
         });
         const [result] = await CertificateModel.aggregate(aggregation);
         const total = result.totalCount[0]?.count || 0;
+        const totalActive = result.totalActive[0]?.count || 0;
+        const totalExpired = result.totalExpired[0]?.count || 0;
 
         return res.status(200).json({
             status: 200,
             message: ["Certificates fetched successfully"],
             data: result.data,
-            total
+            total,
+            totalActive,
+            totalExpired
         });
 
     } catch (error) {
