@@ -68,8 +68,12 @@ const createLSVRule = async (req, res) => {
 const getGLSVRules = async (req, res) => {
     try {
         const adminId = req.user.id;
-
-        const rules = await goodLSVRulesModel.find({ adminId }).populate('locationId', 'name');
+        const role = req.user.role;
+        let query = {};
+        if (role == 'admin') {
+            query.adminId = adminId;
+        }
+        const rules = await goodLSVRulesModel.find(query).populate('locationId', 'name');
 
         return res.status(200).json({
             status: 200,
@@ -144,8 +148,12 @@ const createRRLSV = async (req, res) => {
 const getRRLSVRules = async (req, res) => {
     try {
         const adminId = req.user.id;
-
-        const rules = await ruleRagulationLSVModel.find({ adminId }).populate('locationId', 'name');
+        const role = req.user.role;
+        let query = {};
+        if (role == 'admin') {
+            query.adminId = adminId;
+        }
+        const rules = await ruleRagulationLSVModel.find(query).populate('locationId', 'name');
 
         return res.status(200).json({
             status: 200,
