@@ -154,20 +154,29 @@ const getAllCertificateAdmin = async (req, res) => {
                 totalCount: [
                     { $count: 'count' }
                 ],
-                totalActive: [
-                    { $match: { status: 'Active' } },
-                    { $count: 'count' }
-                ],
-                totalExpired: [
-                    { $match: { status: 'Expired' } },
-                    { $count: 'count' }
+                stats: [
+                    {
+                        $group: {
+                            _id: null,
+                            totalCertificate: { $sum: 1 },
+                            totalActive: {
+                                $sum: { $cond: [{ $eq: ["$status", "Active"] }, 1, 0] }
+                            },
+                            totalExpired: {
+                                $sum: { $cond: [{ $eq: ["$status", "Expired"] }, 1, 0] }
+                            }
+                        }
+                    }
                 ]
             }
         });
+
         const [result] = await CertificateModel.aggregate(aggregation);
         const total = result.totalCount[0]?.count || 0;
-        const totalActive = result.totalActive[0]?.count || 0;
-        const totalExpired = result.totalExpired[0]?.count || 0;
+        const stats = result.stats[0] || {};
+        const totalCertificate = stats.totalCertificate || 0;
+        const totalActive = stats.totalActive || 0;
+        const totalExpired = stats.totalExpired || 0;
 
         return res.status(200).json({
             status: 200,
@@ -175,7 +184,8 @@ const getAllCertificateAdmin = async (req, res) => {
             data: result.data,
             total,
             totalActive,
-            totalExpired
+            totalExpired,
+            totalCertificate
         });
 
     } catch (error) {
