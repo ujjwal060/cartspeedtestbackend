@@ -6,12 +6,33 @@ const { ObjectId } = mongoose.Types;
 
 const getAllCertificateAdmin = async (req, res) => {
     try {
-        const { id, role } = req.user;
+        const adminId = req.user.id;
+        const role = req.user.role;
+        const {
+            filters = {},
+            offset = 0,
+            limit = 10
+        } = req.body;
+
+        const parsedOffset = parseInt(offset);
+        const parsedLimit = parseInt(limit);
+
+        const {
+            userName,
+            locationName,
+            status,
+            startDate,
+            endDate,
+            sort = {}
+        } = filters;
+
+        const sortField = sort?.field || 'issueDate';
+        const sortOrder = sort?.order || 1;
 
         let aggregation = [];
 
-        if (role !== 'superAdmin') {
-            const adminData = await adminModel.findById(id);
+        if (role === 'admin') {
+            const adminData = await adminModel.findById(adminId);
             if (!adminData || !adminData.location) {
                 return res.status(200).json({
                     status: 200,
@@ -27,6 +48,13 @@ const getAllCertificateAdmin = async (req, res) => {
             });
         }
 
+        const dateMatch = {};
+        if (startDate) dateMatch.issueDate = { ...dateMatch.issueDate, $gte: new Date(startDate) };
+        if (endDate) dateMatch.issueDate = { ...dateMatch.issueDate, $lte: new Date(endDate) };
+        if (Object.keys(dateMatch).length > 0) {
+            aggregation.push({ $match: dateMatch });
+        }
+
         aggregation.push({
             $lookup: {
                 from: 'locations',
@@ -37,6 +65,13 @@ const getAllCertificateAdmin = async (req, res) => {
         });
 
         aggregation.push({ $unwind: "$locationData" });
+         if (locationName) {
+            aggregation.push({
+                $match: {
+                    'locationData.name': { $regex: locationName, $options: 'i' }
+                }
+            });
+        }
 
         aggregation.push({
             $lookup: {
@@ -61,14 +96,28 @@ const getAllCertificateAdmin = async (req, res) => {
                 foreignField: '_id',
                 as: 'userData'
             }
-        })
+        });
 
         aggregation.push({
             $unwind: {
                 path: '$userData',
                 preserveNullAndEmptyArrays: true
             }
-        })
+        });
+
+        if (userName) {
+            aggregation.push({
+                $match: {
+                    'userData.name': { $regex: userName, $options: 'i' }
+                }
+            });
+        }
+
+        if (status) {
+            aggregation.push({
+                $match: { status }
+            });
+        }
 
         aggregation.push({
             $project: {
@@ -87,12 +136,27 @@ const getAllCertificateAdmin = async (req, res) => {
             }
         });
 
-        const result = await CertificateModel.aggregate(aggregation);
+        aggregation.push({ $sort: { [sortField]: sortOrder } });
+
+        aggregation.push({
+            $facet: {
+                data: [
+                    { $skip: parsedOffset },
+                    { $limit: parsedLimit }
+                ],
+                totalCount: [
+                    { $count: 'count' }
+                ]
+            }
+        });
+        const [result] = await CertificateModel.aggregate(aggregation);
+        const total = result.totalCount[0]?.count || 0;
 
         return res.status(200).json({
             status: 200,
             message: ["Certificates fetched successfully"],
-            data: result
+            data: result.data,
+            total
         });
 
     } catch (error) {

@@ -3,6 +3,6 @@ import {getAllCertificateAdmin} from '../controllers/certificateController.js';
 
 const router = express.Router();
 
-router.get('/getAllCertificate',getAllCertificateAdmin);
+router.post('/getAllCertificate',getAllCertificateAdmin);
 
 export default router;
