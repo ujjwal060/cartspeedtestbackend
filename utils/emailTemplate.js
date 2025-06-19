@@ -21,7 +21,7 @@ const emailTamplates = {
         Email: ${email}
         Password: ${password}
 
-        You can log in here: ${'http://18.209.91.97:1114'}
+        You can log in here: <a href="http://18.209.91.97:1114" target="_blank">http://18.209.91.97:1114</a>
         
         Please change your password after logging in.
         
