@@ -1,21 +1,19 @@
-FROM node:20
- 
+FROM node:18-alpine
+
+# Set the working directory inside the container
 WORKDIR /usr/src/app
- 
-# Install ffmpeg before anything else
-RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
- 
-# Copy package.json and package-lock.json files to install dependencies
+
+# Copy package.json and package-lock.json first for dependency installation
 COPY package*.json ./
- 
-# Install dependencies (production only)
+
+# Install dependencies
 RUN npm install --production
- 
-# Copy the rest of the application files
+
+# Copy the entire project to the container
 COPY . .
- 
-# Expose the app port
+
+# Expose the backend port
 EXPOSE 9090
- 
-# Run the backend
+
+# Start the application
 CMD ["node", "app.js"]
