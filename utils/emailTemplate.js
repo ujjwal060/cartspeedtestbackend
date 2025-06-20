@@ -11,6 +11,7 @@ const emailTamplates = {
         Thank you,
         `
     }),
+
     sendAdminCurd: (name, email, password) => ({
         subject: 'You Have Been Added as an Admin',
         body: `
@@ -28,6 +29,26 @@ const emailTamplates = {
         Thank you,
         `
     }),
+
+    sendVideoDeletedBySuperAdmin: (adminName, videoTitle, videoUrl) => ({
+        subject: 'Your Safety Video Has Been Deleted by Super Admin',
+        body: `
+        Hi ${adminName},
+
+        This is to inform you that a safety video uploaded by you has been deleted by a Super Admin.
+
+        Details of the deleted video:
+
+        Title: ${videoTitle}
+        URL: ${videoUrl}
+
+        If you believe this action was taken by mistake, please reach out to the administrator team.
+
+        Thank you,
+        Safety Compliance System
+        `
+    })
+
 }
 
 export {
