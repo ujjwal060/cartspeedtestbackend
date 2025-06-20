@@ -663,10 +663,11 @@ const deleteSaftyVideo = async (req, res) => {
         }
 
         const videoAdmin = await adminModel.findById(video.adminId);
-
+        
         await safityVideo.findByIdAndDelete(id);
 
         if (userRole === 'superAdmin' && videoAdmin) {
+            const email= videoAdmin.email;
             const { subject, body } = emailTamplates.sendVideoDeletedBySuperAdmin(videoAdmin.name, video.title, video.url);
             const emailSent = await sendEmail({ email, subject, body });
             if (!emailSent.success) {
