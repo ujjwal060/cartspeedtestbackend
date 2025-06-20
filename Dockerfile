@@ -1,21 +1,33 @@
-FROM node:20
- 
+FROM node:18-alpine
+
+# Puppeteer dependencies
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    nodejs \
+    yarn
+
+# Set working directory
 WORKDIR /usr/src/app
- 
-# Install ffmpeg before anything else
-RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
- 
-# Copy package.json and package-lock.json files to install dependencies
+
+# Copy dependencies first
 COPY package*.json ./
- 
-# Install dependencies (production only)
+
+# Install dependencies (make sure puppeteer is installed)
 RUN npm install --production
- 
-# Copy the rest of the application files
+
+# Copy the full app
 COPY . .
- 
-# Expose the app port
+
+# Let Puppeteer know where Chromium lives
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
+# Expose the port
 EXPOSE 9090
- 
-# Run the backend
+
+# Start the app
 CMD ["node", "app.js"]
