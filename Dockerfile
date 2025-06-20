@@ -1,19 +1,33 @@
 FROM node:18-alpine
 
-# Set the working directory inside the container
+# Puppeteer dependencies
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    nodejs \
+    yarn
+
+# Set working directory
 WORKDIR /usr/src/app
 
-# Copy package.json and package-lock.json first for dependency installation
+# Copy dependencies first
 COPY package*.json ./
 
-# Install dependencies
+# Install dependencies (make sure puppeteer is installed)
 RUN npm install --production
 
-# Copy the entire project to the container
+# Copy the full app
 COPY . .
 
-# Expose the backend port
+# Let Puppeteer know where Chromium lives
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
+# Expose the port
 EXPOSE 9090
 
-# Start the application
+# Start the app
 CMD ["node", "app.js"]
