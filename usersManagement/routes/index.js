@@ -5,13 +5,14 @@ import userLocationroutes from '../routes/userLocationRoutes.js';
 import {authenticateUser} from '../../middleware/authMiddleware.js';
 import userAssesmentRoutes from './userAssesmentRoutes.js';
 import lsvRuleRoutes from './lsvRuleRoutes.js';
+import {checkIsAdminActive} from '../../middleware/checkMiddleware.js';
 
 const router = express.Router();
 
 router.use('/users', userRoutes);
-router.use('/user/video',authenticateUser,videosRoutes);
-router.use('/user/location',authenticateUser,userLocationroutes);
-router.use('/user/asses',authenticateUser,userAssesmentRoutes);
-router.use('/user/lsv',authenticateUser,lsvRuleRoutes);
+router.use('/user/video',authenticateUser,checkIsAdminActive,videosRoutes);
+router.use('/user/location',authenticateUser,checkIsAdminActive,userLocationroutes);
+router.use('/user/asses',authenticateUser,checkIsAdminActive,userAssesmentRoutes);
+router.use('/user/lsv',authenticateUser,checkIsAdminActive,lsvRuleRoutes);
 
 export default router;

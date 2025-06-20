@@ -51,9 +51,6 @@ const getAllCertificateAdmin = async (req, res) => {
         const dateMatch = {};
         if (startDate) dateMatch.issueDate = { ...dateMatch.issueDate, $gte: new Date(startDate) };
         if (endDate) dateMatch.issueDate = { ...dateMatch.issueDate, $lte: new Date(endDate) };
-        // if (Object.keys(dateMatch).length > 0) {
-        //     aggregation.push({ $match: dateMatch });
-        // }
 
         const combinedMatch = { ...matchAdminStage, ...dateMatch };
         if (Object.keys(combinedMatch).length > 0) {

@@ -76,7 +76,7 @@ const filterAggregation = async (nearbyLocations) => {
     let aggregation = [];
     aggregation.push({
         $match: {
-            locationId:new ObjectId(nearbyLocations)
+            locationId: new ObjectId(nearbyLocations)
         }
     })
 
@@ -122,64 +122,64 @@ const filterAggregation = async (nearbyLocations) => {
     // })
 
     aggregation.push({
-    $project: {
-        _id: 1,
-        questions: 1,
-        createdAt: 1,
-        sections: {
-            $map: {
-                input: '$sections',
-                as: 'section',
-                in: {
-                    $mergeObjects: [
-                        '$$section',
-                        {
-                            description: {
-                                $replaceAll: {
-                                    input: {
-                                        $replaceAll: {
-                                            input: '$$section.description',
-                                            find: '<p>',
-                                            replacement: ''
-                                        }
-                                    },
-                                    find: '</p>',
-                                    replacement: ''
+        $project: {
+            _id: 1,
+            questions: 1,
+            createdAt: 1,
+            sections: {
+                $map: {
+                    input: '$sections',
+                    as: 'section',
+                    in: {
+                        $mergeObjects: [
+                            '$$section',
+                            {
+                                description: {
+                                    $replaceAll: {
+                                        input: {
+                                            $replaceAll: {
+                                                input: '$$section.description',
+                                                find: '<p>',
+                                                replacement: ''
+                                            }
+                                        },
+                                        find: '</p>',
+                                        replacement: ''
+                                    }
                                 }
                             }
-                        }
-                    ]
+                        ]
+                    }
                 }
-            }
-        },
-        guidelines: {
-            $map: {
-                input: '$guidelines',
-                as: 'guideline',
-                in: {
-                    $mergeObjects: [
-                        '$$guideline',
-                        {
-                            description: {
-                                $replaceAll: {
-                                    input: {
-                                        $replaceAll: {
-                                            input: '$$guideline.description',
-                                            find: '<p>',
-                                            replacement: ''
-                                        }
-                                    },
-                                    find: '</p>',
-                                    replacement: ''
+            },
+            guidelines: {
+                $map: {
+                    input: '$guidelines',
+                    as: 'guideline',
+                    in: {
+                        $mergeObjects: [
+                            '$$guideline',
+                            {
+                                description: {
+                                    $replaceAll: {
+                                        input: {
+                                            $replaceAll: {
+                                                input: '$$guideline.description',
+                                                find: '<p>',
+                                                replacement: ''
+                                            }
+                                        },
+                                        find: '</p>',
+                                        replacement: ''
+                                    }
                                 }
                             }
-                        }
-                    ]
+                        ]
+                    }
                 }
             }
         }
-    }
-});
+    });
 
     return aggregation;
 }
@@ -300,65 +300,64 @@ const filterAggregationRRLSV = async (nearbyLocations) => {
     // })
 
     aggregation.push({
-    $project: {
-        _id: 1,
-        questions: 1,
-        createdAt: 1,
-        sections: {
-            $map: {
-                input: '$sections',
-                as: 'section',
-                in: {
-                    $mergeObjects: [
-                        '$$section',
-                        {
-                            description: {
-                                $replaceAll: {
-                                    input: {
-                                        $replaceAll: {
-                                            input: '$$section.description',
-                                            find: '<p>',
-                                            replacement: ''
-                                        }
-                                    },
-                                    find: '</p>',
-                                    replacement: ''
+        $project: {
+            _id: 1,
+            questions: 1,
+            createdAt: 1,
+            sections: {
+                $map: {
+                    input: '$sections',
+                    as: 'section',
+                    in: {
+                        $mergeObjects: [
+                            '$$section',
+                            {
+                                description: {
+                                    $replaceAll: {
+                                        input: {
+                                            $replaceAll: {
+                                                input: '$$section.description',
+                                                find: '<p>',
+                                                replacement: ''
+                                            }
+                                        },
+                                        find: '</p>',
+                                        replacement: ''
+                                    }
                                 }
                             }
-                        }
-                    ]
+                        ]
+                    }
                 }
-            }
-        },
-        guidelines: {
-            $map: {
-                input: '$guidelines',
-                as: 'guideline',
-                in: {
-                    $mergeObjects: [
-                        '$$guideline',
-                        {
-                            description: {
-                                $replaceAll: {
-                                    input: {
-                                        $replaceAll: {
-                                            input: '$$guideline.description',
-                                            find: '<p>',
-                                            replacement: ''
-                                        }
-                                    },
-                                    find: '</p>',
-                                    replacement: ''
+            },
+            guidelines: {
+                $map: {
+                    input: '$guidelines',
+                    as: 'guideline',
+                    in: {
+                        $mergeObjects: [
+                            '$$guideline',
+                            {
+                                description: {
+                                    $replaceAll: {
+                                        input: {
+                                            $replaceAll: {
+                                                input: '$$guideline.description',
+                                                find: '<p>',
+                                                replacement: ''
+                                            }
+                                        },
+                                        find: '</p>',
+                                        replacement: ''
+                                    }
                                 }
                             }
-                        }
-                    ]
+                        ]
+                    }
                 }
             }
         }
-    }
-});
-
+    });
 
     return aggregation;
 }
