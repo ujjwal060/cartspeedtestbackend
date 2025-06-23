@@ -27,8 +27,8 @@ const getAllCertificateAdmin = async (req, res) => {
             sort = {}
         } = filters;
 
-        const sortField = sort?.field || 'issueDate';
-        const sortOrder = sort?.order || 1;
+        const sortField = sort?.sortField || 'issueDate';
+        const sortOrder = sort?.sortBy || 1;
 
         let aggregation = [];
         let matchAdminStage = [];
