@@ -110,10 +110,10 @@ const getAllQuestions = async (req, res) => {
             }
         });
 
-        if (filters?.locationName) {
+        if (filters?.location) {
             aggregation.push({
                 $match: {
-                    'locationDetails.name': { $regex: filters.locationName, $options: 'i' }
+                    'locationDetails.zipCode': { $regex: filters.location, $options: 'i' }
                 }
             });
         }
