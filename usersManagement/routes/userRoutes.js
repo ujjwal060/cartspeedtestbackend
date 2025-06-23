@@ -17,12 +17,14 @@ import {
     changePassword,
     verifyOtp,
     getProfileById,
-    updateProfile
+    updateProfile,
+    updateProfileImage
 } from '../controllers/userController.js';
 import {
     authenticateUser,
     refreshToken
 } from '../../middleware/authMiddleware.js';
+import {uploadToS3} from '../../utils/awsS3api.js';
 
 
 const router = express.Router();
@@ -38,5 +40,7 @@ router.post('/verifyOTP', validateRequest(userValidationSchemaOTP),verifyOtp);
 router.post('/refreshToken', refreshToken);
 router.get('/getProfile/:id',authenticateUser,getProfileById);
 router.put('/updateProfile/:userId',validateRequest(updateProfileSchema),authenticateUser,updateProfile);
+router.patch('/profileImage/:userId',authenticateUser,uploadToS3,updateProfileImage);
+
 
 export default router;

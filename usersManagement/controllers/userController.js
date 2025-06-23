@@ -12,7 +12,7 @@ import { loadConfig } from "../../config/loadConfig.js";
 const registerUser = async (req, res) => {
     try {
         logger.info("User registration request received", { body: req.body });
-        const { name, email, mobile, address} = req.body;
+        const { name, email, mobile, address } = req.body;
 
         const existingUser = await UserModel.findOne({ $or: [{ email }, { mobile }] });
 
@@ -200,7 +200,7 @@ const loginUser = async (req, res) => {
             data: {
                 accessToken,
                 refreshToken,
-                userId:user._id
+                userId: user._id
             }
         });
 
@@ -445,7 +445,7 @@ const getProfileById = async (req, res) => {
                 password: 0,
                 otp: 0,
                 otpExpire: 0,
-                refreshToken:0,
+                refreshToken: 0,
                 __v: 0
             }
         })
@@ -562,6 +562,45 @@ const updateProfile = async (req, res) => {
     }
 }
 
+const updateProfileImage = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const imageUrl = req.fileLocations[0];
+
+        if (!imageUrl) {
+            return res.status(400).json({
+                status: 400,
+                message: ['No image uploaded.'],
+            });
+        }
+
+        const updatedUser = await UserModel.findByIdAndUpdate(
+            userId,
+            { image: imageUrl },
+            { new: true }
+        );
+
+        if (!updatedUser) {
+            return res.status(404).json({
+                status: 404,
+                message: ['User not found.'],
+            });
+        }
+
+        return res.status(200).json({
+            status: 200,
+            message: ['Profile image updated successfully.'],
+            data: updatedUser,
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            status: 500,
+            message: [error.message],
+        });
+    }
+}
+
 export {
     registerUser,
     verifyOtp,
@@ -572,5 +611,6 @@ export {
     logOut,
     changePassword,
     getProfileById,
-    updateProfile
+    updateProfile,
+    updateProfileImage
 };
