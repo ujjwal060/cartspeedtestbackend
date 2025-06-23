@@ -42,6 +42,24 @@ const getAllUsers = async (req, res) => {
             })
         };
 
+        if (filters?.startDate || filters?.endDate) {
+            const dateRange = {};
+
+            if (filters.startDate) {
+                dateRange.$gte = new Date(new Date(filters.startDate).setHours(0, 0, 0, 0));
+            }
+
+            if (filters.endDate) {
+                dateRange.$lte = new Date(new Date(filters.endDate).setHours(23, 59, 59, 999));
+            }
+
+            aggregation.push({
+                $match: {
+                    createdAt: dateRange
+                }
+            });
+        }
+
         if (sortField) {
             aggregation.push({
                 $sort: {
@@ -82,6 +100,6 @@ const getAllUsers = async (req, res) => {
     }
 }
 
-export{
+export {
     getAllUsers
 }
