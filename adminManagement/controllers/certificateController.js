@@ -9,9 +9,11 @@ const getAllCertificateAdmin = async (req, res) => {
         const adminId = req.user.id;
         const role = req.user.role;
         const {
-            filters = {},
-            offset = 0,
-            limit = 10
+            filters,
+            offset,
+            limit,
+            sortBy,
+            sortField
         } = req.body;
 
         const parsedOffset = parseInt(offset);
@@ -24,11 +26,7 @@ const getAllCertificateAdmin = async (req, res) => {
             status,
             startDate,
             endDate,
-            sort = {}
         } = filters;
-
-        const sortField = sort?.sortField || 'issueDate';
-        const sortOrder = sort?.sortBy || 1;
 
         let aggregation = [];
         let matchAdminStage = [];
@@ -144,7 +142,7 @@ const getAllCertificateAdmin = async (req, res) => {
             }
         });
 
-        aggregation.push({ $sort: { [sortField]: sortOrder } });
+        aggregation.push({ $sort: { [sortField]: sortBy } });
 
         aggregation.push({
             $facet: {
