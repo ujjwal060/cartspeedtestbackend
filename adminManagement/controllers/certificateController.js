@@ -142,7 +142,10 @@ const getAllCertificateAdmin = async (req, res) => {
             }
         });
 
-        aggregation.push({ $sort: { [sortField]: sortBy } });
+
+        if (sortField) {
+            aggregation.push({ $sort: { [sortField]: sortBy } });
+        }
 
         aggregation.push({
             $facet: {
