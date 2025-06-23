@@ -26,7 +26,7 @@ router.post('/forgote', forgatePassword);
 router.post('/verifyotp',validateRequest(adminValidationSchemaOTP), verifyOtp);
 router.post('/setPass', validateRequest(setPasswordValidationSchema), setPassword);
 router.get('/profile/:id',verifyTokenMiddleware, getProfileById);
-router.put('/status:/adminId',verifyTokenMiddleware,toggleAdminStatus);
+router.put('/status/:adminId',verifyTokenMiddleware,toggleAdminStatus);
 router.post('/getAllAdmins',verifyTokenMiddleware,getAllAdmins);
 
 

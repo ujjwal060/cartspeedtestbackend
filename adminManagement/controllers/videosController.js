@@ -3,6 +3,8 @@ import questionModel from "../../models/questionModel.js"
 import LocationVideo from "../../models/videosModel.js";
 import adminModel from "../../models/adminModel.js";
 import safityVideo from "../../models/saftyVideosModel.js";
+import { emailTamplates } from "../../utils/emailTemplate.js";
+import {sendEmail } from '../../utils/otpUtils.js';
 import { logger } from "../../utils/logger.js";
 import ffmpeg from 'fluent-ffmpeg';
 import ffprobeInstaller from '@ffprobe-installer/ffprobe';
@@ -628,6 +630,61 @@ const gateAggregationSaftyVideo = async ({ filters, adminId, role, offset, limit
 
     return aggregation;
 }
+
+const toggleSaftyVideoStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const video = await safityVideo.findById(id);
+        if (!video) {
+            return res.status(404).json({ message: 'Video not found' });
+        }
+
+        video.isActive = !video.isActive;
+        await video.save();
+
+        res.status(200).json({
+            message: `Video status updated to ${video.isActive ? 'Active' : 'Inactive'}`,
+            isActive: video.isActive,
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Error updating status', error: error.message });
+    }
+};
+
+const deleteSaftyVideo = async (req, res) => {
+    try {
+        const userRole = req.user.role;
+        const { id } = req.params;
+
+        const video = await safityVideo.findById(id);
+        if (!video) {
+            return res.status(404).json({ message: 'Video not found' });
+        }
+
+        const videoAdmin = await adminModel.findById(video.adminId);
+        
+        await safityVideo.findByIdAndDelete(id);
+
+        if (userRole === 'superAdmin' && videoAdmin) {
+            const email= videoAdmin.email;
+            const { subject, body } = emailTamplates.sendVideoDeletedBySuperAdmin(videoAdmin.name, video.title, video.url);
+            const emailSent = await sendEmail({ email, subject, body });
+            if (!emailSent.success) {
+                logger.error("Failed to send email to new admin", { email, error: emailSent.message });
+                return res.status(500).json({
+                    status: 500,
+                    message: emailSent.message,
+                });
+            }
+        }
+
+        res.status(200).json({ message: 'Video deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error deleting video', error: error.message });
+    }
+};
+
 export {
     addVideos,
     getAllVideos,
@@ -635,5 +692,7 @@ export {
     videosStatus,
     checkExistingSection,
     addSafityVideos,
-    getSaftyVideos
+    getSaftyVideos,
+    toggleSaftyVideoStatus,
+    deleteSaftyVideo
 }

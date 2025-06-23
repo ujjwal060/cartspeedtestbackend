@@ -30,14 +30,14 @@ const getAllUsers = async (req, res) => {
         if (filters?.mobile) {
             aggregation.push({
                 $match: {
-                    email: filters?.email
+                    mobile: filters?.mobile
                 }
             })
         };
         if (filters?.state) {
             aggregation.push({
                 $match: {
-                    state: filters?.state
+                    address: filters?.state
                 }
             })
         };

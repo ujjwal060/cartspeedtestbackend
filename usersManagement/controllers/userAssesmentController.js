@@ -2,9 +2,13 @@ import mongoose from 'mongoose';
 const { ObjectId } = mongoose.Types;
 import UserVideoProgress from '../../models/UserVideoProgress.js';
 import UserTestAttempts from '../../models/userTestModel.js';
-import QuestionModel from '../../models/questionModel.js'
+import QuestionModel from '../../models/questionModel.js';
+import CertificateModel from '../../models/CertificateModel.js';
+import UserModel from '../../models/userModel.js';
+import LocationModel from '../../models/locationModel.js';
 import { logger } from '../../utils/logger.js';
-
+import { generateCertificateImage } from '../../utils/certificateGenerator.js';
+import { getNextCertificateNumber } from '../../utils/getNextCertificateNumber.js';
 
 const getAssesmentForUser = async (req, res) => {
     try {
@@ -96,7 +100,7 @@ const submitTestAttempt = async (req, res) => {
         );
 
         if (todayAttempts.length >= 3) {
-            return res.status(400).json({ message: "You have reached today's 3 attempt limit" });
+            return res.status(400).json({ status: 400, message: ["You have reached today's 3 attempt limit"] });
         }
 
         const attemptNumber = userTest.attempts.length + 1;
@@ -121,7 +125,8 @@ const submitTestAttempt = async (req, res) => {
         await userTest.save();
 
         return res.status(200).json({
-            message: "Attempt submitted successfully",
+            message: ["Attempt submitted successfully"],
+            status: 200,
             data: {
                 score,
                 isPassed,
@@ -246,7 +251,136 @@ const getAggregation = async (userId, locationId, sectionNumber, isSectionComple
     return aggregation;
 }
 
+const enrollForCertificate = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { locationId } = req.body;
+
+        logger.info(`Certificate enrollment initiated - user: ${userId}, location: ${locationId}`);
+
+        const [user, location] = await Promise.all([
+            UserModel.findById(userId),
+            LocationModel.findById(locationId)
+        ]);
+
+        if (!user) return res.status(404).json({ status: 404, message: ["User not found."] });
+        if (!location) return res.status(404).json({ status: 404, message: ["Location not found."] });
+
+        const existing = await CertificateModel.findOne({ userId, locationId });
+        if (existing) {
+            return res.status(200).json({
+                message: ["Certificate already generated."],
+                status: 200,
+                data: existing,
+            });
+        }
+
+        const certificateNumber = await getNextCertificateNumber();
+        const issueDate = new Date();
+        const validUntil = new Date();
+        validUntil.setFullYear(validUntil.getFullYear() + 3);
+
+        const newCertificate = new CertificateModel({
+            userId,
+            locationId,
+            email: user.email,
+            certificateNumber,
+            certificateName: `Certificate of Completion for, ${location.name}`,
+            certificateIssuedBy: "CARTIE APP",
+            status:'Active',
+            issueDate,
+            validUntil,
+            certificateUrl: ""
+        });
+
+        const certificateUrl = await generateCertificateImage({
+            certificateName: newCertificate.certificateName,
+            locationName: location.name,
+            email: user.email,
+            certificateNumber: newCertificate.certificateNumber,
+            issueDate: newCertificate.issueDate,
+            validUntil: newCertificate.validUntil
+        });
+
+        newCertificate.certificateUrl = certificateUrl;
+        await newCertificate.save();
+
+        logger.info(`Certificate generated for user: ${userId}, cert#: ${certificateNumber}`);
+
+        return res.status(200).json({
+            message: ["Certificate generated successfully."],
+            status: 200,
+            data: newCertificate
+        });
+
+    } catch (error) {
+        logger.error(`Certificate enrollment error - user: ${req.user?.userId}`, error);
+        return res.status(500).json({
+            status: 500,
+            message: [error.message],
+        });
+    }
+};
+
+const getAllCerificate = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        let aggregation = [];
+
+        aggregation.push({
+            $match: {
+                userId: new ObjectId(userId)
+            }
+        })
+
+        aggregation.push({
+            $lookup: {
+                from: 'locations',
+                localField: 'locationId',
+                foreignField: '_id',
+                as: 'locationData'
+            }
+        })
+
+        aggregation.push({
+            $unwind: {
+                path: '$locationData',
+                preserveNullAndEmptyArrays: true
+            }
+        })
+        aggregation.push({
+            $project: {
+                _id: 1,
+                locationId: 1,
+                certificateNumber: 1,
+                certificateName: 1,
+                issueDate: 1,
+                certificateUrl: 1,
+                validUntil: 1,
+                status:1,
+                locationName: '$locationData.name'
+            }
+        })
+
+        const result = await CertificateModel.aggregate(aggregation);
+
+        return res.status(200).json({
+            satus: 200,
+            message: ["get all certificates"],
+            data: result
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            status: 500,
+            message: [error.message],
+        });
+    }
+}
+
 export {
     getAssesmentForUser,
-    submitTestAttempt
+    submitTestAttempt,
+    enrollForCertificate,
+    getAllCerificate
 }

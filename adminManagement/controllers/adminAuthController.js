@@ -106,6 +106,15 @@ const login = async (req, res) => {
             });
         }
 
+        if (admin.role === 'admin' && admin.isActive === false) {
+            logger.warn(`Admin login blocked - Inactive admin. Email: ${email}`);
+            return res.status(403).json({
+                status: 403,
+                isActive:false,
+                message: ['You have been blocked by the super admin. Please contact the super admin.'],
+            });
+        }
+
         const isMatch = await bcrypt.compare(password, admin.password);
         if (!isMatch) {
             logger.warn(`Admin login failed - Invalid password. Email: ${email}`);
@@ -530,6 +539,7 @@ const getAllAdmins = async (req, res) => {
                 email: 1,
                 mobile: 1,
                 role: 1,
+                isActive: 1,
                 'locationDetails.name': 1
             }
         });
