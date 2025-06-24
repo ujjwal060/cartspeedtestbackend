@@ -140,6 +140,35 @@ const getGLSVRules = async (req, res) => {
     }
 }
 
+const deleteGLSV = async (req, res) => {
+    try {
+        const adminId = new mongoose.Types.ObjectId(req.user.id)
+        const { id } = req.params;
+
+        const deletedDoc = await goodLSVRulesModel.findOneAndDelete({
+            _id: new mongoose.Types.ObjectId(id),
+            adminId: adminId
+        });
+
+        if (!deletedDoc) {
+            return res.status(404).json({
+                status: 404,
+                message: ['Document not found or unauthorized'],
+            });
+        }
+
+        return res.status(200).json({
+            status: 200,
+            message: ['Document deleted successfully'],
+        });
+    } catch (error) {
+        return res.status(500).json({
+            status: 500,
+            message: [error.message],
+        });
+    }
+}
+
 const createRRLSV = async (req, res) => {
     try {
         const adminId = req.user.id;
@@ -271,9 +300,40 @@ const getRRLSVRules = async (req, res) => {
     }
 };
 
+const deleteRRLSV = async (req, res) => {
+    try {
+        const adminId = new mongoose.Types.ObjectId(req.user.id)
+        const { id } = req.params;
+
+        const deletedDoc = await ruleRagulationLSVModel.findOneAndDelete({
+            _id:new mongoose.Types.ObjectId(id),
+            adminId: adminId
+        });
+
+        if (!deletedDoc) {
+            return res.status(404).json({
+                status: 404,
+                message: ['Document not found or unauthorized'],
+            });
+        }
+
+        return res.status(200).json({
+            status: 200,
+            message: ['Document deleted successfully'],
+        });
+    } catch (error) {
+        return res.status(500).json({
+            status: 500,
+            message: [error.message],
+        });
+    }
+}
+
 export {
     createLSVRule,
     getGLSVRules,
     createRRLSV,
-    getRRLSVRules
+    getRRLSVRules,
+    deleteGLSV,
+    deleteRRLSV
 }
