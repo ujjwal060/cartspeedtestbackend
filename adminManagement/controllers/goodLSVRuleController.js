@@ -125,12 +125,13 @@ const getGLSVRules = async (req, res) => {
             }
         });
 
-        const rules = await goodLSVRulesModel.aggregate(aggregation);
-
+        const [rules] = await goodLSVRulesModel.aggregate(aggregation);
+        const total = rules.totalCount[0]?.count || 0;
         return res.status(200).json({
             status: 200,
             message: 'LSV Rules fetched successfully',
-            data: rules
+            data: rules.data,
+            total
         });
     } catch (error) {
         return res.status(500).json({
@@ -285,12 +286,13 @@ const getRRLSVRules = async (req, res) => {
             }
         });
 
-        const rules = await ruleRagulationLSVModel.aggregate(aggregation);
-
+        const [rules] = await ruleRagulationLSVModel.aggregate(aggregation);
+        const total = rules.totalCount[0]?.count || 0;
         return res.status(200).json({
             status: 200,
             message: 'RRLSV Rules fetched successfully',
-            data: rules
+            data: rules.data,
+            total
         });
     } catch (error) {
         return res.status(500).json({
@@ -306,7 +308,7 @@ const deleteRRLSV = async (req, res) => {
         const { id } = req.params;
 
         const deletedDoc = await ruleRagulationLSVModel.findOneAndDelete({
-            _id:new mongoose.Types.ObjectId(id),
+            _id: new mongoose.Types.ObjectId(id),
             adminId: adminId
         });
 
