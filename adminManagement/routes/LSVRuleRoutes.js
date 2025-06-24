@@ -9,8 +9,8 @@ import {
 const router = express.Router();
 
 router.post('/addGLSVR',uploadToS3,createLSVRule);
-router.get('/getGLSV', getGLSVRules);
+router.post('/getGLSV', getGLSVRules);
 router.post('/addRRLSVR',uploadToS3,createRRLSV);
-router.get('/getRRLSV', getRRLSVRules);
+router.post('/getRRLSV', getRRLSVRules);
 
 export default router;
