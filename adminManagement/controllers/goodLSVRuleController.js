@@ -2,6 +2,7 @@ import goodLSVRulesModel from '../../models/goodLSVRulesModel.js';
 import adminModel from "../../models/adminModel.js";
 import ruleRagulationLSVModel from "../../models/ruleAndRegulationLSVModel.js";
 import { logger } from "../../utils/logger.js";
+import mongoose from "mongoose";
 
 const createLSVRule = async (req, res) => {
     try {
@@ -69,11 +70,62 @@ const getGLSVRules = async (req, res) => {
     try {
         const adminId = req.user.id;
         const role = req.user.role;
-        let query = {};
+        const { offset, limit } = req.body;
+        const parsedOffset = parseInt(offset);
+        const parsedLimit = parseInt(limit);
+        let aggregation = [];
+
         if (role == 'admin') {
-            query.adminId = adminId;
+            aggregation.push({
+                $match: {
+                    adminId: new mongoose.Types.ObjectId(adminId),
+                }
+            });
         }
-        const rules = await goodLSVRulesModel.find(query).populate('locationId', 'name');
+
+        aggregation.push({
+            $lookup: {
+                from: 'locations',
+                localField: 'locationId',
+                foreignField: '_id',
+                as: 'location'
+            }
+        });
+
+        aggregation.push({
+            $unwind: { path: '$location', preserveNullAndEmptyArrays: true },
+        });
+
+
+        aggregation.push({
+            $project: {
+                _id: 1,
+                ruleName: 1,
+                description: 1,
+                locationId: '$location._id',
+                locationName: '$location.name',
+                questions: 1,
+                sections: 1,
+                guidelines: 1,
+                createdAt: 1,
+                updatedAt: 1
+            }
+
+        });
+
+        aggregation.push({
+            $facet: {
+                data: [
+                    { $skip: parsedOffset },
+                    { $limit: parsedLimit }
+                ],
+                totalCount: [
+                    { $count: 'count' }
+                ]
+            }
+        });
+
+        const rules = await goodLSVRulesModel.aggregate(aggregation);
 
         return res.status(200).json({
             status: 200,
@@ -149,11 +201,62 @@ const getRRLSVRules = async (req, res) => {
     try {
         const adminId = req.user.id;
         const role = req.user.role;
-        let query = {};
+        const { offset, limit } = req.body;
+        const parsedOffset = parseInt(offset);
+        const parsedLimit = parseInt(limit);
+        let aggregation = [];
+
         if (role == 'admin') {
-            query.adminId = adminId;
+            aggregation.push({
+                $match: {
+                    adminId: new mongoose.Types.ObjectId(adminId),
+                }
+            });
         }
-        const rules = await ruleRagulationLSVModel.find(query).populate('locationId', 'name');
+
+        aggregation.push({
+            $lookup: {
+                from: 'locations',
+                localField: 'locationId',
+                foreignField: '_id',
+                as: 'location'
+            }
+        });
+
+        aggregation.push({
+            $unwind: { path: '$location', preserveNullAndEmptyArrays: true },
+        });
+
+
+        aggregation.push({
+            $project: {
+                _id: 1,
+                ruleName: 1,
+                description: 1,
+                locationId: '$location._id',
+                locationName: '$location.name',
+                questions: 1,
+                sections: 1,
+                guidelines: 1,
+                createdAt: 1,
+                updatedAt: 1
+            }
+
+        });
+
+        aggregation.push({
+            $facet: {
+                data: [
+                    { $skip: parsedOffset },
+                    { $limit: parsedLimit }
+                ],
+                totalCount: [
+                    { $count: 'count' }
+                ]
+            }
+        });
+
+        const rules = await ruleRagulationLSVModel.aggregate(aggregation);
 
         return res.status(200).json({
             status: 200,
@@ -166,7 +269,7 @@ const getRRLSVRules = async (req, res) => {
             message: [error.message],
         });
     }
-}
+};
 
 export {
     createLSVRule,
