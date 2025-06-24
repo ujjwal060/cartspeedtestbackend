@@ -4,13 +4,17 @@ import {
     createLSVRule,
     getGLSVRules,
     getRRLSVRules,
-    createRRLSV
+    createRRLSV,
+    deleteGLSV,
+    deleteRRLSV
 } from '../controllers/goodLSVRuleController.js';
 const router = express.Router();
 
 router.post('/addGLSVR',uploadToS3,createLSVRule);
-router.get('/getGLSV', getGLSVRules);
+router.post('/getGLSV', getGLSVRules);
 router.post('/addRRLSVR',uploadToS3,createRRLSV);
-router.get('/getRRLSV', getRRLSVRules);
+router.post('/getRRLSV', getRRLSVRules);
+router.delete('/deleteGLSV/:id', deleteGLSV);
+router.delete('/deleteRRLSV/:id', deleteRRLSV);
 
 export default router;
