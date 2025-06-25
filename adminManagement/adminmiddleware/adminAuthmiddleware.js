@@ -58,7 +58,7 @@ const refreshToken = async (req, res) => {
     try {
         const decoded = jwt.verify(refreshToken, config.REFRESH_TOKEN_SECRET);
 
-        const user = await adminModel.findOne({ userId: decoded.userId });
+        const user = await adminModel.findById(decoded.id);
 
         const newAccessToken = jwt.sign(
             { id: user._id,role:user.role,email:user.email },
