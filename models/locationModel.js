@@ -10,7 +10,7 @@ const locationSchema = new mongoose.Schema({
       required: true
     },
     coordinates: {
-      type: [[[Number]]],
+      type: mongoose.Schema.Types.Mixed,
       required: true
     }
   }
