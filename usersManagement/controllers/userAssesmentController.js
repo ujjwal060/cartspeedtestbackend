@@ -167,12 +167,11 @@ const getAggregation = async (userId, locationId, sectionNumber, isSectionComple
             "sections.sectionId": new ObjectId(sectionId),
         }
     })
-    aggregation.push({
-        $match: {
-            // "sections.isSectionCompleted": isSectionCompleted
-            "sections.isSectionCompleted":true
-        }
-    })
+    // aggregation.push({
+    //     $match: {
+    //         // "sections.isSectionCompleted": isSectionCompleted
+    //     }
+    // })
     aggregation.push({
         $unwind: "$sections.videos"
     })
