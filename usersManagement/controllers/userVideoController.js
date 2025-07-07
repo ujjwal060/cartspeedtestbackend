@@ -421,7 +421,7 @@ const getVideoAggregation = async (locationIds, userId) => {
                     title: "$sections.title",
                     durationTime: "$sections.durationTime",
                     isSectionCompleted: {
-                        $ifNull: ["$userProgress.sections.isSectionCompleted", false]
+                        $ifNull: ["$userProgress.sections.isSectionCompleted", true]
                     },
                     test: {
                         isSectionCompleted: { $ifNull: ["$testData.isSectionCompleted", false] },
