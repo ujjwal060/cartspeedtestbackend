@@ -415,17 +415,17 @@ const getVideoAggregation = async (locationIds, userId) => {
             totalVideos: { $first: "$totalVideos" },
             totalDuration: { $first: "$totalDuration" },
             sections: {
-                $push: {
+                $addToSet: {
                     _id: "$sections._id",
                     sectionNumber: "$sections.sectionNumber",
                     title: "$sections.title",
                     durationTime: "$sections.durationTime",
                     isSectionCompleted: {
-                        $ifNull: ["$userProgress.sections.isSectionCompleted", false]
+                        $ifNull: ["$userProgress.sections.isSectionCompleted", true]
                     },
                     test: {
-                        isSectionCompleted: { $ifNull: ["$testData.isSectionCompleted", false] },
-                        nextSectionUnlocked: { $ifNull: ["$testData.nextSectionUnlocked", false] }
+                        isSectionCompleted: { $ifNull: ["$testData.isSectionCompleted", true] },
+                        nextSectionUnlocked: { $ifNull: ["$testData.nextSectionUnlocked", true] }
                     },
                     videos: {
                         $map: {
@@ -454,7 +454,7 @@ const getVideoAggregation = async (locationIds, userId) => {
                                             },
                                             in: {
                                                 watchedDuration: { $ifNull: ["$$videoProgress.watchedDuration", "0"] },
-                                                isCompleted: { $ifNull: ["$$videoProgress.isCompleted", false] }
+                                                isCompleted: { $ifNull: ["$$videoProgress.isCompleted", true] }
                                             }
                                         }
                                     }
@@ -473,6 +473,26 @@ const getVideoAggregation = async (locationIds, userId) => {
                 $sortArray: {
                     input: "$sections",
                     sortBy: { sectionNumber: 1 }
+                }
+            }
+        }
+    });
+
+    aggregation.push({
+        $addFields: {
+            sections: {
+                $reduce: {
+                    input: "$sections",
+                    initialValue: [],
+                    in: {
+                        $cond: [
+                            {
+                                $in: ["$$this._id", { $map: { input: "$$value", as: "s", in: "$$s._id" } }]
+                            },
+                            "$$value",
+                            { $concatArrays: ["$$value", ["$$this"]] }
+                        ]
+                    }
                 }
             }
         }
