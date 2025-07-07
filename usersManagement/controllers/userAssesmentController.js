@@ -169,7 +169,8 @@ const getAggregation = async (userId, locationId, sectionNumber, isSectionComple
     })
     aggregation.push({
         $match: {
-            "sections.isSectionCompleted": isSectionCompleted
+            // "sections.isSectionCompleted": isSectionCompleted
+            "sections.isSectionCompleted":true
         }
     })
     aggregation.push({
