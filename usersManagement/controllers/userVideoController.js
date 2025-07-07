@@ -454,7 +454,7 @@ const getVideoAggregation = async (locationIds, userId) => {
                                             },
                                             in: {
                                                 watchedDuration: { $ifNull: ["$$videoProgress.watchedDuration", "0"] },
-                                                isCompleted: { $ifNull: ["$$videoProgress.isCompleted", flase] }
+                                                isCompleted: { $ifNull: ["$$videoProgress.isCompleted", false] }
                                             }
                                         }
                                     }
