@@ -1,4 +1,4 @@
-import Notification from '../../models/goodLSVRulesModel.js';
+import Notification from '../../models/notificationModel.js';
 
 const createNotification = async (req, res) => {
     try {
