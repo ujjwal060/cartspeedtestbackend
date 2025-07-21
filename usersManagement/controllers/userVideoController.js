@@ -415,7 +415,7 @@ const getVideoAggregation = async (locationIds, userId) => {
             totalVideos: { $first: "$totalVideos" },
             totalDuration: { $first: "$totalDuration" },
             sections: {
-                $push: {
+                $addToSet: {
                     _id: "$sections._id",
                     sectionNumber: "$sections.sectionNumber",
                     title: "$sections.title",
@@ -473,6 +473,26 @@ const getVideoAggregation = async (locationIds, userId) => {
                 $sortArray: {
                     input: "$sections",
                     sortBy: { sectionNumber: 1 }
+                }
+            }
+        }
+    });
+
+    aggregation.push({
+        $addFields: {
+            sections: {
+                $reduce: {
+                    input: "$sections",
+                    initialValue: [],
+                    in: {
+                        $cond: [
+                            {
+                                $in: ["$$this._id", { $map: { input: "$$value", as: "s", in: "$$s._id" } }]
+                            },
+                            "$$value",
+                            { $concatArrays: ["$$value", ["$$this"]] }
+                        ]
+                    }
                 }
             }
         }

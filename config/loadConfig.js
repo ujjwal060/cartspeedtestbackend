@@ -30,7 +30,7 @@ const loadConfig = async () => {
             EMAIL_PASS:secrets.EMAIL_PASS,
             AWS_ACCESS_KEY_ID:secrets.AWS_ACCESS_KEY_ID,
             AWS_SECRET_ACCESS_KEY:secrets.AWS_SECRET_ACCESS_KEY,
-            S3_BUCKET:'cart-0jbi5zbl'
+            S3_BUCKET:'internal-n0wsvav8'
           };
         } catch (parseError) {
           console.error("JSON Parse Error:", parseError);
