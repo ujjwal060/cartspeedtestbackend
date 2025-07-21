@@ -16,24 +16,16 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                script {
-                    checkout scm
-                }
+                checkout scm
             }
         }
-
 
         stage('Login to Docker Hub') {
             steps {
                 script {
                     sh '''
                     echo "Logging in to Docker Hub..."
-                    if echo "$DOCKER_HUB_PASSWORD" | docker login -u "$DOCKER_HUB_USERNAME" --password-stdin; then
-                        echo "✅ Docker Hub login successful!"
-                    else
-                        echo "❌ ERROR: Docker Hub login failed! Check credentials in Jenkins."
-                        exit 1
-                    fi
+                    echo "$DOCKER_HUB_PASSWORD" | docker login -u "$DOCKER_HUB_USERNAME" --password-stdin
                     '''
                 }
             }
@@ -44,7 +36,7 @@ pipeline {
                 script {
                     def latestTag = sh(
                         script: '''
-                        curl -s https://hub.docker.com/v2/repositories/kartikeytiwari/handy-frontend/tags/ | \
+                        curl -s https://hub.docker.com/v2/repositories/kartikeytiwari/cart-back/tags/ | \
                         jq -r '.results[].name' | grep -E '^stage-v[0-9]+$' | sort -V | tail -n1 | awk -F'v' '{print $2}'
                         ''',
                         returnStdout: true
@@ -78,72 +70,69 @@ pipeline {
 
         stage('Tag Docker Image') {
             steps {
-                script {
-                    sh '''
-                    echo "Tagging Docker image..."
-                    docker tag ${IMAGE_NAME}:latest ${IMAGE_NAME}:${NEW_STAGE_TAG}
-                    docker tag ${IMAGE_NAME}:latest ${IMAGE_NAME}:prodv1
-                    '''
-                }
+                sh '''
+                docker tag ${IMAGE_NAME}:latest ${IMAGE_NAME}:${NEW_STAGE_TAG}
+                docker tag ${IMAGE_NAME}:latest ${IMAGE_NAME}:prodv1
+                '''
             }
         }
 
         stage('Security Scan with Trivy') {
             steps {
-                script {
-                    sh '''
-                    echo "Running Trivy security scan..."
-                    if docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image \
-                        --exit-code 0 --severity HIGH,CRITICAL ${IMAGE_NAME}:${NEW_STAGE_TAG}; then
-                        echo "✅ Trivy scan completed!"
-                    else
-                        echo "⚠️ Trivy scan found vulnerabilities, but continuing pipeline..."
-                    fi
-                    '''
-                }
+                sh '''
+                echo "Running Trivy security scan..."
+                docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image \
+                    --exit-code 0 --severity HIGH,CRITICAL ${IMAGE_NAME}:${NEW_STAGE_TAG} || \
+                echo "⚠️ Trivy scan found vulnerabilities"
+                '''
             }
         }
 
         stage('Push Docker Image to Docker Hub') {
             steps {
-                script {
-                    sh '''
-                    echo "Pushing Docker images to Docker Hub..."
-                    docker push ${IMAGE_NAME}:${NEW_STAGE_TAG}
-                    docker push ${IMAGE_NAME}:prodv1
-                    '''
-                }
+                sh '''
+                docker push ${IMAGE_NAME}:${NEW_STAGE_TAG}
+                docker push ${IMAGE_NAME}:prodv1
+                '''
             }
         }
 
         stage('Stop Existing Container') {
             steps {
-                script {
-                    sh '''
-                    echo "Stopping existing container..."
-                    CONTAINER_ID=$(docker ps -q --filter "publish=${HOST_PORT}")
-                    if [ -n "$CONTAINER_ID" ]; then
-                        docker stop "$CONTAINER_ID" || true
-                        docker rm "$CONTAINER_ID" || true
-                    else
-                        echo "No container running on port ${HOST_PORT}"
-                    fi
-                    '''
-                }
+                sh '''
+                CONTAINER_ID=$(docker ps -q --filter "publish=${HOST_PORT}")
+                if [ -n "$CONTAINER_ID" ]; then
+                    docker stop "$CONTAINER_ID" || true
+                    docker rm "$CONTAINER_ID" || true
+                else
+                    echo "No container running on port ${HOST_PORT}"
+                fi
+                '''
             }
         }
 
         stage('Run New Docker Container') {
             steps {
-                script {
-                    sh '''
-                    echo "Starting new container with latest image..."
-                    docker run -d \
-                        -e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
-                        -e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
-                        -p ${HOST_PORT}:${CONTAINER_PORT} ${IMAGE_NAME}:prodv1
-                    '''
-                }
+                sh '''
+                echo "Starting new container with prodv1 tag..."
+                docker run -d \
+                    -e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
+                    -e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
+                    -p ${HOST_PORT}:${CONTAINER_PORT} ${IMAGE_NAME}:prodv1
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                echo "📩 Sending deployment email..."
+                emailext (
+                    to: "${EMAIL_RECIPIENTS}",
+                    subject: "Cart Backend Deployment - ${currentBuild.fullDisplayName}",
+                    body: "Job '${env.JOB_NAME} [#${env.BUILD_NUMBER}]' completed with status: ${currentBuild.currentResult}"
+                )
             }
         }
     }
