@@ -44,7 +44,7 @@ pipeline {
                 script {
                     def latestTag = sh(
                         script: '''
-                        curl -s https://hub.docker.com/v2/repositories/aayanindia/handy-frontend/tags/ | \
+                        curl -s https://hub.docker.com/v2/repositories/kartikeytiwari/handy-frontend/tags/ | \
                         jq -r '.results[].name' | grep -E '^stage-v[0-9]+$' | sort -V | tail -n1 | awk -F'v' '{print $2}'
                         ''',
                         returnStdout: true
@@ -144,53 +144,6 @@ pipeline {
                         -p ${HOST_PORT}:${CONTAINER_PORT} ${IMAGE_NAME}:prodv1
                     '''
                 }
-            }
-        }
-    }
-
-    post {
-        always {
-            script {
-                echo "📩 Sending deployment email..."
-                emailext (
-                    subject: "🚀 Pipeline Status: ${currentBuild.currentResult} (Build #${BUILD_NUMBER})",
-                    body: """
-                    <html>
-                    <body>
-                    <p><strong>Pipeline Status:</strong> ${currentBuild.currentResult}</p>
-                    <p><strong>Build Number:</strong> ${BUILD_NUMBER}</p>
-                    <p><strong>Check the <a href="${BUILD_URL}">console output</a>.</strong></p>
-                    </body>
-                    </html>
-                    """,
-                    to: "${EMAIL_RECIPIENTS}",
-                    from: "development.aayanindia@gmail.com",
-                    replyTo: "ujjwal.singh@aayaninfotech.com",
-                    mimeType: 'text/html'
-                )
-            }
-        }
-
-        failure {
-            script {
-                echo "❌ Sending failure email with logs..."
-                emailext (
-                    subject: "🚨 Deployment Failed (Build #${BUILD_NUMBER})",
-                    body: """
-                    <html>
-                    <body>
-                    <p><strong>❌ Deployment Failed</strong></p>
-                    <p><strong>Logs:</strong> Attached below.</p>
-                    <p><strong>Check the <a href="${BUILD_URL}">console output</a>.</strong></p>
-                    </body>
-                    </html>
-                    """,
-                    attachLog: true,
-                    to: "${EMAIL_RECIPIENTS}",
-                    from: "development.aayanindia@gmail.com",
-                    replyTo: "ujjwal.singh@aayaninfotech.com",
-                    mimeType: 'text/html'
-                )
             }
         }
     }
