@@ -123,17 +123,4 @@ pipeline {
             }
         }
     }
-
-    post {
-        always {
-            script {
-                echo "📩 Sending deployment email..."
-                emailext (
-                    to: "${EMAIL_RECIPIENTS}",
-                    subject: "Cart Backend Deployment - ${currentBuild.fullDisplayName}",
-                    body: "Job '${env.JOB_NAME} [#${env.BUILD_NUMBER}]' completed with status: ${currentBuild.currentResult}"
-                )
-            }
-        }
-    }
 }
