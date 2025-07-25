@@ -16,6 +16,35 @@ const getAssesmentForUser = async (req, res) => {
         const { locationId, sectionNumber, isSectionCompleted, sectionId } = req.body;
         logger.info(`Fetching assessment for user: ${userId}, location: ${locationId}, section: ${sectionNumber}`);
 
+        if (!locationId || !sectionNumber || !sectionId) {
+            logger.info('No location/section provided, returning Super Admin questions');
+
+            const questions = await QuestionModel.find({
+                isSuperAdmin: true
+            })
+            .limit(10)
+            .lean();
+
+            const formattedQuestions = questions.map(q => ({
+                _id: q._id,
+                question: q.question,
+                options: q.options.map(opt => ({
+                    text: opt.text,
+                    isCorrect: opt.isCorrect,
+                    _id: opt._id
+                }))
+            }));
+
+            return res.status(200).json({
+                status: 200,
+                message: ['Super Admin default questions fetched successfully'],
+                data: [{
+                    sectionId: null,
+                    questions: formattedQuestions
+                }]
+            });
+        }
+
         let aggregation = await getAggregation(userId, locationId, sectionNumber, isSectionCompleted, sectionId);
 
         const result = await UserVideoProgress.aggregate(aggregation);
@@ -287,7 +316,7 @@ const enrollForCertificate = async (req, res) => {
             certificateNumber,
             certificateName: `Certificate of Completion for, ${location.name}`,
             certificateIssuedBy: "CARTIE APP",
-            status:'Active',
+            status: 'Active',
             issueDate,
             validUntil,
             certificateUrl: ""
@@ -357,7 +386,7 @@ const getAllCerificate = async (req, res) => {
                 issueDate: 1,
                 certificateUrl: 1,
                 validUntil: 1,
-                status:1,
+                status: 1,
                 locationName: '$locationData.name'
             }
         })
