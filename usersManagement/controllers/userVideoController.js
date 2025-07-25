@@ -123,10 +123,19 @@ const updateVideoProgress = async (req, res) => {
             return res.status(404).json({ status: 404, message: ['Video not found'] });
         }
 
-        const minutes = Math.floor(watchedDuration / 60);
-        const seconds = watchedDuration % 60;
-        const formattedDuration = `${minutes}m ${seconds}s`;
-        const isCompleted = formattedDuration === video.durationTime;
+        // const minutes = Math.floor(watchedDuration / 60);
+        // const seconds = watchedDuration % 60;
+        // const formattedDuration = `${minutes}m ${seconds}s`;
+        // const isCompleted = formattedDuration === video.durationTime;
+
+        // Convert video.durationTime (e.g. "3m 20s") to total seconds
+        const [minStr, secStr] = video.durationTime.split(" ");
+        const videoMinutes = parseInt(minStr.replace("m", ""));
+        const videoSeconds = parseInt(secStr.replace("s", ""));
+        const videoTotalSeconds = videoMinutes * 60 + videoSeconds;
+
+        const isCompleted = watchedDuration >= (videoTotalSeconds - 5);
+
 
         let userProgress = await UserVideoProgress.findOne({ userId, locationId });
 
@@ -162,10 +171,18 @@ const updateVideoProgress = async (req, res) => {
             } else {
                 const existingVideoProgress = userProgress.sections[sectionIndex].videos[videoIndex];
 
+                // if (!existingVideoProgress.isCompleted) {
+                //     existingVideoProgress.watchedDuration = watchedDuration;
+
+                //     if (formattedDuration === video.durationTime) {
+                //         existingVideoProgress.isCompleted = true;
+                //     }
+                // }
+
                 if (!existingVideoProgress.isCompleted) {
                     existingVideoProgress.watchedDuration = watchedDuration;
 
-                    if (formattedDuration === video.durationTime) {
+                    if (watchedDuration >= (videoTotalSeconds - 5)) {
                         existingVideoProgress.isCompleted = true;
                     }
                 }
@@ -398,7 +415,7 @@ const getVideoAggregation = async (locationIds, userId) => {
             totalVideos: { $first: "$totalVideos" },
             totalDuration: { $first: "$totalDuration" },
             sections: {
-                $push: {
+                $addToSet: {
                     _id: "$sections._id",
                     sectionNumber: "$sections.sectionNumber",
                     title: "$sections.title",
@@ -456,6 +473,26 @@ const getVideoAggregation = async (locationIds, userId) => {
                 $sortArray: {
                     input: "$sections",
                     sortBy: { sectionNumber: 1 }
+                }
+            }
+        }
+    });
+
+    aggregation.push({
+        $addFields: {
+            sections: {
+                $reduce: {
+                    input: "$sections",
+                    initialValue: [],
+                    in: {
+                        $cond: [
+                            {
+                                $in: ["$$this._id", { $map: { input: "$$value", as: "s", in: "$$s._id" } }]
+                            },
+                            "$$value",
+                            { $concatArrays: ["$$value", ["$$this"]] }
+                        ]
+                    }
                 }
             }
         }

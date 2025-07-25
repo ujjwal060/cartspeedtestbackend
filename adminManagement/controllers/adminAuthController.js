@@ -110,7 +110,7 @@ const login = async (req, res) => {
             logger.warn(`Admin login blocked - Inactive admin. Email: ${email}`);
             return res.status(403).json({
                 status: 403,
-                isActive: false,
+                isActive:false,
                 message: ['You have been blocked by the super admin. Please contact the super admin.'],
             });
         }
@@ -399,26 +399,12 @@ const checkAndSaveLocation = async ({ locationName, zipCode, geoJsonData }) => {
             };
         }
 
-        let geometryType = feature.geometry.type;
-        let coordinates = feature.geometry.coordinates;
-
-        if (
-            geometryType === 'MultiPolygon' &&
-            Array.isArray(coordinates) &&
-            Array.isArray(coordinates[0]) &&
-            Array.isArray(coordinates[0][0]) &&
-            Array.isArray(coordinates[0][0][0])
-        ) {
-            console.warn("⚠️ Detected extra nested MultiPolygon, flattening one level");
-            coordinates = coordinates.flat();
-        }
-
         const newLocation = new locationModel({
             name: locationName,
             zipCode: zipCode,
             geometry: {
                 type: feature.geometry.type,
-                coordinates:coordinates
+                coordinates: feature.geometry.coordinates
             }
         });
 
