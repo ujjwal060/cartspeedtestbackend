@@ -4,7 +4,7 @@ import LocationVideo from "../../models/videosModel.js";
 import adminModel from "../../models/adminModel.js";
 import safityVideo from "../../models/saftyVideosModel.js";
 import { emailTamplates } from "../../utils/emailTemplate.js";
-import {sendEmail } from '../../utils/otpUtils.js';
+import { sendEmail } from '../../utils/otpUtils.js';
 import { logger } from "../../utils/logger.js";
 import ffmpeg from 'fluent-ffmpeg';
 import ffprobeInstaller from '@ffprobe-installer/ffprobe';
@@ -439,6 +439,7 @@ const addSafityVideos = async (req, res) => {
     try {
         const { title, description, } = req.body;
         const adminId = req.user.id;
+        const role = req.user.role;
         const url = req.fileLocations[0];
 
         if (!title || !url || !adminId) {
@@ -449,15 +450,24 @@ const addSafityVideos = async (req, res) => {
             });
         }
 
-        const location = await adminModel.findById(adminId);
-        if (!location) {
-            return res.status(404).json({
-                status: 404,
-                message: ['No location found for this admin.'],
-            });
+        let locationId = null;
+        let isSuperAdmin = false;
+
+        if (role === 'superAdmin') {
+            isSuperAdmin = true;
+        } else {
+            const location = await adminModel.findById(adminId);
+            if (!location || !location.location) {
+                return res.status(404).json({
+                    status: 404,
+                    message: ['No location found for this admin.'],
+                });
+            }
+            locationId = location.location;
         }
-        const locationId = location.location;
+        
         const durationTime = await getVideoDuration(url);
+
         const videoData = new safityVideo({
             title,
             url,
@@ -466,6 +476,7 @@ const addSafityVideos = async (req, res) => {
             description,
             durationTime,
             isActive: true,
+            isSuperAdmin,
         });
 
         await videoData.save();
@@ -663,11 +674,11 @@ const deleteSaftyVideo = async (req, res) => {
         }
 
         const videoAdmin = await adminModel.findById(video.adminId);
-        
+
         await safityVideo.findByIdAndDelete(id);
 
         if (userRole === 'superAdmin' && videoAdmin) {
-            const email= videoAdmin.email;
+            const email = videoAdmin.email;
             const { subject, body } = emailTamplates.sendVideoDeletedBySuperAdmin(videoAdmin.name, video.title, video.url);
             const emailSent = await sendEmail({ email, subject, body });
             if (!emailSent.success) {
