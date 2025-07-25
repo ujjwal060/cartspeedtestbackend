@@ -8,16 +8,33 @@ const questionSchema = new mongoose.Schema({
       isCorrect: { type: Boolean, default: false },
     },
   ],
-  locationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Location', required: true },
-  sectionNumber: { type: String, required: true },
-  sectionId:{ type: mongoose.Schema.Types.ObjectId,
-    required: true,
+  locationId: {
+    type: mongoose.Schema.Types.ObjectId, ref: 'Location', required: function () {
+      return !this.isSuperAdmin;
+    }
+  },
+  sectionNumber: {
+    type: String, required: function () {
+      return !this.isSuperAdmin;
+    }
+  },
+  sectionId: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: function () {
+      return !this.isSuperAdmin;
+    }
   },
   videoId: {
     type: mongoose.Schema.Types.ObjectId,
-    required: true,
+    required: function () {
+      return !this.isSuperAdmin;
+    }
   },
   adminId: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', required: true },
+  isSuperAdmin: {
+    type: Boolean,
+    default: false
+  }
 }, { timestamps: true });
 
 

@@ -6,13 +6,27 @@ import { ObjectId } from 'bson';
 const createQuestion = async (req, res) => {
     try {
         const { question, options, videoId, sectionNumber, locationId, adminId, sectionId } = req.body;
-        if (!options || !videoId || !question || !locationId || !sectionNumber || !adminId) {
-            logger.warn('Missing required fields in createQuestion');
+        const role = req.user.role;
+        const isSuperAdmin = role === 'superAdmin';
+
+        if (!question || !options || options.length === 0) {
+            logger.warn('Missing required base fields in createQuestion');
             return res.status(400).json({
                 status: 400,
-                message: ['Required fields are missing.'],
+                message: ['Question text and options are required.'],
             });
         }
+
+        if (!isSuperAdmin) {
+            if (!options || !videoId || !question || !locationId || !sectionNumber || !adminId) {
+                logger.warn('Missing required fields in createQuestion');
+                return res.status(400).json({
+                    status: 400,
+                    message: ['Required fields are missing.'],
+                });
+            }
+        }
+
 
         const newQuestion = new QuestionModel({
             sectionNumber,
@@ -21,7 +35,8 @@ const createQuestion = async (req, res) => {
             videoId,
             locationId,
             adminId,
-            sectionId
+            sectionId,
+            isSuperAdmin
         });
 
         await newQuestion.save();
@@ -276,7 +291,7 @@ const deleteQuestion = async (req, res) => {
         return res.status(200).json({
             status: 200,
             message: ['Question deleted successfully'],
-            data:deletedQuestion
+            data: deletedQuestion
         });
 
     } catch (error) {
