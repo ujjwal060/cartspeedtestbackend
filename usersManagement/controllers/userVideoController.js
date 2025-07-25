@@ -567,10 +567,24 @@ const getSaftyVideo = async (req, res) => {
         const videos = await safityVideo.aggregate(aggregation);
         logger.info('Safety videos found:', videos.length);
 
-        if (videos.length === 0) {
-            return res.status(404).json({
-                status: 404,
-                message: ['No safety videos found for nearby locations']
+        if (!videos || videos.length === 0) {
+            logger.info('No location-based video found, checking super admin video...');
+            const superAdminVideo = await safityVideo.findOne({
+                isSuperAdmin: true,
+                isActive: true
+            }).select('_id title description durationTime url');
+
+            if (!superAdminVideo) {
+                return res.status(404).json({
+                    status: 404,
+                    message: ['No safety videos found for location or super admin default']
+                });
+            }
+
+            return res.json({
+                status: 200,
+                message: ['Super Admin default safety video shown'],
+                data: [superAdminVideo]
             });
         }
 
