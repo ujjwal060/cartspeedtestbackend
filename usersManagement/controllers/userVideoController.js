@@ -554,20 +554,7 @@ const getSaftyVideo = async (req, res) => {
             }
         });
 
-        if (nearbyLocations.length === 0) {
-            return res.status(404).json({
-                status: 404,
-                message: ['No locations found within 50 miles radius']
-            });
-        }
-
-        const locationIds = [nearbyLocations._id];
-        let aggregation = await saftyVideoAggregation(locationIds, nearbyLocations);
-
-        const videos = await safityVideo.aggregate(aggregation);
-        logger.info('Safety videos found:', videos.length);
-
-        if (!videos || videos.length === 0) {
+        if (!nearbyLocations || nearbyLocations.length===0) {
             logger.info('No location-based video found, checking super admin video...');
             const superAdminVideo = await safityVideo.findOne({
                 isSuperAdmin: true,
@@ -587,6 +574,12 @@ const getSaftyVideo = async (req, res) => {
                 data: [superAdminVideo]
             });
         }
+
+        const locationIds = [nearbyLocations._id];
+        let aggregation = await saftyVideoAggregation(locationIds, nearbyLocations);
+
+        const videos = await safityVideo.aggregate(aggregation);
+        logger.info('Safety videos found:', videos.length);
 
         return res.json({
             status: 200,
