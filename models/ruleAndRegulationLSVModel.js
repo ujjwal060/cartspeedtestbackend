@@ -49,7 +49,9 @@ const rulesAndRegulationSchema = new mongoose.Schema({
   locationId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Location',
-    required: true
+     required: function () {
+      return !this.isSuperAdmin;
+    },
   },
   adminId: {
     type: mongoose.Schema.Types.ObjectId,
