@@ -1,68 +1,70 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const questionSchema = new mongoose.Schema({
   whatIsLSV: {
     type: String,
-    required: true
+    required: true,
   },
   importance: {
     type: String,
-    required: true
+    required: true,
   },
   safety: {
     type: String,
-    required: true
-  }
+    required: true,
+  },
 });
 
 const guidelineSchema = new mongoose.Schema({
   title: {
     type: String,
-    required: true
+    required: true,
   },
   description: {
     type: String,
-    required: true
+    required: true,
   },
   imageUrl: {
     type: String,
-    required: true
-  }
+    required: true,
+  },
 });
 
 const sectionSchema = new mongoose.Schema({
   title: {
     type: String,
-    required: true
+    required: true,
   },
   description: {
     type: String,
-    required: true
+    required: true,
   },
   isActive: {
     type: Boolean,
-    default: true
-  }
+    default: true,
+  },
 });
 
 const rulesAndRegulationSchema = new mongoose.Schema({
   locationId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Location',
-    required: true
+    ref: "Location",
+    required: function () {
+      return !this.isSuperAdmin;
+    },
   },
   adminId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Admin',
-    required: true
+    ref: "Admin",
+    required: true,
   },
   questions: questionSchema,
   sections: [sectionSchema],
   guidelines: [guidelineSchema],
   createdAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
-export default mongoose.model('GLSVRule', rulesAndRegulationSchema);
+export default mongoose.model("GLSVRule", rulesAndRegulationSchema);
