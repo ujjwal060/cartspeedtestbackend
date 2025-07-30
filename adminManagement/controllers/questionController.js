@@ -22,7 +22,7 @@ const createQuestion = async (req, res) => {
 
         if (isSuperAdmin) {
             const locationdata = await adminModel.findById(adminId);
-            finalLocationId = locationdata.locationId;
+            finalLocationId = locationdata.location;
         }else{
             finalLocationId = locationId;
         }
