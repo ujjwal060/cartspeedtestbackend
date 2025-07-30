@@ -86,7 +86,7 @@ const gateLocationGeofence = async (req, res) => {
         }
         const userCoords = userLoc.coordinates.coordinates;
 
-        const matchedLocation = await locationModel.findOne({
+        let matchedLocation = await locationModel.findOne({
             geometry: {
                 $geoIntersects: {
                     $geometry: {
@@ -95,15 +95,22 @@ const gateLocationGeofence = async (req, res) => {
                     },
                 },
             },
+            role: 'admin'
         });
+
+         if (!matchedLocation) {
+            matchedLocation = await locationModel.findOne({
+                role: 'superAdmin'
+            });
+        }
 
         if (!matchedLocation) {
             return res.status(404).json({
                 status: 404,
-                message: ['No matching location found near user coordinates'],
+                message: ['No matching location or superadmin fallback found'],
             });
         }
-
+        
         return res.status(200).json({
             status: 200,
             message: ['Location found'],
