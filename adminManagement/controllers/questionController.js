@@ -1,5 +1,6 @@
 import QuestionModel from "../../models/questionModel.js";
 import videoModel from "../../models/videosModel.js"
+import adminModel from "../../models/adminModel.js";
 import { logger } from "../../utils/logger.js";
 import { ObjectId } from 'bson';
 
@@ -17,7 +18,15 @@ const createQuestion = async (req, res) => {
             });
         }
 
-        if (!isSuperAdmin) {
+        let finalLocationId;
+
+        if (isSuperAdmin) {
+            finalLocationId = await adminModel.findById(adminId).select('locationId');
+        }else{
+            finalLocationId = locationId;
+        }
+
+         if (!isSuperAdmin) {
             if (!options || !videoId || !question || !locationId || !sectionNumber || !adminId) {
                 logger.warn('Missing required fields in createQuestion');
                 return res.status(400).json({

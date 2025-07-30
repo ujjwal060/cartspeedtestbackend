@@ -10,7 +10,7 @@ const questionSchema = new mongoose.Schema({
   ],
   locationId: {
     type: mongoose.Schema.Types.ObjectId, ref: 'Location', required: function () {
-      return !this.isSuperAdmin;
+      return true
     }
   },
   sectionNumber: {
