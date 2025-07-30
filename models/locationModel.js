@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 const locationSchema = new mongoose.Schema({
   name: { type: String, required: true },
   zipCode: { type: String, required: true, unique: true },
+  role:{type:String, required: true,  enum: ['admin', 'superAdmin'],},
   geometry: {
     type: {
       type: String,

@@ -37,7 +37,7 @@ const adminRegister = async (req, res) => {
             }
         }
 
-        const result = await checkAndSaveLocation({ locationName, zipCode, geoJsonData });
+        const result = await checkAndSaveLocation({ locationName, zipCode, geoJsonData, role });
         if (!result.success) {
             logger.warn("Location validation failed", { message: result.message });
             return res.status(result.status).json({
@@ -360,9 +360,9 @@ const getProfileById = async (req, res) => {
     }
 };
 
-const checkAndSaveLocation = async ({ locationName, zipCode, geoJsonData }) => {
+const checkAndSaveLocation = async ({ locationName, zipCode, geoJsonData,role }) => {
     try {
-        if (!locationName || !zipCode || !geoJsonData) {
+        if (!locationName || !zipCode || !geoJsonData ||!role) {
             return {
                 success: false,
                 status: 400,
@@ -402,6 +402,7 @@ const checkAndSaveLocation = async ({ locationName, zipCode, geoJsonData }) => {
         const newLocation = new locationModel({
             name: locationName,
             zipCode: zipCode,
+            role: role,
             geometry: {
                 type: feature.geometry.type,
                 coordinates: feature.geometry.coordinates
