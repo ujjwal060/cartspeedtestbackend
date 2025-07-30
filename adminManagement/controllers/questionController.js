@@ -21,7 +21,8 @@ const createQuestion = async (req, res) => {
         let finalLocationId;
 
         if (isSuperAdmin) {
-            finalLocationId = await adminModel.findById(adminId).select('location');
+            const locationdata = await adminModel.findById(adminId);
+            finalLocationId = locationdata.locationId;
         }else{
             finalLocationId = locationId;
         }
