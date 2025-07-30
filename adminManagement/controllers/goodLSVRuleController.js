@@ -27,21 +27,20 @@ const createLSVRule = async (req, res) => {
       });
     }
 
-    let locationId = null;
     let isSuperAdmin = false;
 
     if (role === "superAdmin") {
       isSuperAdmin = true;
-    } else {
-      const location = await adminModel.findById(adminId);
-      if (!location) {
-        return res.status(404).json({
-          status: 404,
-          message: ["No location found for this admin."],
-        });
-      }
-      locationId = location.location;
     }
+
+    const location = await adminModel.findById(adminId);
+    if (!location) {
+      return res.status(404).json({
+        status: 404,
+        message: ["No location found for this admin."],
+      });
+    }
+    let locationId = location.location;
 
     const processedGuidelines = guidelines.map((guideline, index) => {
       return {
@@ -56,6 +55,7 @@ const createLSVRule = async (req, res) => {
       questions,
       sections,
       guidelines: processedGuidelines,
+      isSuperAdmin,
     });
 
     const savedRule = await newRule.save();
@@ -193,21 +193,20 @@ const createRRLSV = async (req, res) => {
         .json({ message: "All required fields must be provided." });
     }
 
-    let locationId = null;
     let isSuperAdmin = false;
 
     if (role === "superAdmin") {
       isSuperAdmin = true;
-    } else {
-      const location = await adminModel.findById(adminId);
-      if (!location) {
-        return res.status(404).json({
-          status: 404,
-          message: ["No location found for this admin."],
-        });
-      }
-      locationId = location.location;
     }
+
+    const location = await adminModel.findById(adminId);
+    if (!location) {
+      return res.status(404).json({
+        status: 404,
+        message: ["No location found for this admin."],
+      });
+    }
+    let locationId = location.location;
 
     const processedGuidelines = guidelines.map((guideline, index) => {
       return {
@@ -222,6 +221,7 @@ const createRRLSV = async (req, res) => {
       questions,
       sections,
       guidelines: processedGuidelines,
+      isSuperAdmin
     });
     const savedRule = await newRule.save();
 

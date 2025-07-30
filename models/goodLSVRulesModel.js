@@ -46,12 +46,14 @@ const sectionSchema = new mongoose.Schema({
 });
 
 const rulesAndRegulationSchema = new mongoose.Schema({
+  isSuperAdmin: {
+    type: Boolean,
+    default: false,
+  },
   locationId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Location",
-    required: function () {
-      return !this.isSuperAdmin;
-    },
+    required: true,
   },
   adminId: {
     type: mongoose.Schema.Types.ObjectId,
