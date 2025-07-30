@@ -13,9 +13,7 @@ const saftyVideoSchema = new mongoose.Schema({
     locationId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Location',
-        required: function () {
-            return !this.isSuperAdmin;
-        }
+        required:true
     },
     url: { type: String, required: true },
     title: { type: String, required: true },
