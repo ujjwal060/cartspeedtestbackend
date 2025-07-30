@@ -43,7 +43,7 @@ const createQuestion = async (req, res) => {
             question,
             options,
             videoId,
-            locationId,
+            locationId:finalLocationId,
             adminId,
             sectionId,
             isSuperAdmin
