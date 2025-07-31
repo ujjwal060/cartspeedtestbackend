@@ -24,6 +24,35 @@ const getAssesmentForUser = async (req, res) => {
         "No location/section provided, returning Super Admin questions"
       );
 
+      if (!locationId) {
+        const superAdminLocation = await LocationModel.findOne({
+          role: "superAdmin",
+        });
+        if (!superAdminLocation) {
+          return res.status(404).json({
+            status: 404,
+            message: ["SuperAdmin location not found"],
+          });
+        }
+        const CheckLocationId = superAdminLocation._id;
+
+        const existingTest = await UserTestAttempts.findOne({
+          userId,
+          locationId: CheckLocationId,
+          isSectionCompleted: true,
+        });
+
+        const lastAttempt =
+          existingTest.attempts?.[existingTest.attempts.length - 1];
+
+        if (lastAttempt?.isPassed) {
+          return res.status(403).json({
+            status: 403,
+            message: ["You have already passed this assessment."],
+          });
+        }
+      }
+
       const questions = await QuestionModel.find({
         isSuperAdmin: true,
       })
@@ -330,7 +359,7 @@ const enrollForCertificate = async (req, res) => {
   try {
     const userId = req.user.userId;
     const { locationId } = req.body;
-     let userLocationId;
+    let userLocationId;
 
     logger.info(
       `Certificate enrollment initiated - user: ${userId}, location: ${locationId}`
@@ -345,13 +374,12 @@ const enrollForCertificate = async (req, res) => {
     let location;
 
     if (locationId) {
-    userLocationId=locationId
+      userLocationId = locationId;
       location = await LocationModel.findById(locationId);
-    } else{
+    } else {
       location = await LocationModel.findOne({ role: "superAdmin" });
-    userLocationId=location._id
+      userLocationId = location._id;
     }
-      
 
     if (!user)
       return res
@@ -378,7 +406,7 @@ const enrollForCertificate = async (req, res) => {
 
     const newCertificate = new CertificateModel({
       userId,
-      locationId :userLocationId,
+      locationId: userLocationId,
       email: user.email,
       certificateNumber,
       certificateName: `Certificate of Completion for, ${location.name}`,
