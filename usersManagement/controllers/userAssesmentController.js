@@ -153,7 +153,7 @@ const submitTestAttempt = async (req, res) => {
     if (!userTest) {
       userTest = new UserTestAttempts({
         userId,
-        locationId :testLocationId,
+        locationId: testLocationId,
         sectionId,
         sectionNumber,
         attempts: [],
@@ -330,15 +330,28 @@ const enrollForCertificate = async (req, res) => {
   try {
     const userId = req.user.userId;
     const { locationId } = req.body;
+     let userLocationId;
 
     logger.info(
       `Certificate enrollment initiated - user: ${userId}, location: ${locationId}`
     );
 
-    const [user, location] = await Promise.all([
-      UserModel.findById(userId),
-      LocationModel.findById(locationId),
-    ]);
+    // const [user, location] = await Promise.all([
+    //   UserModel.findById(userId),
+    //   LocationModel.findById(locationId),
+    // ]);
+
+    const user = await UserModel.findById(userId);
+    let location;
+
+    if (locationId) {
+    userLocationId=locationId
+      location = await LocationModel.findById(locationId);
+    } else{
+      location = await LocationModel.findOne({ role: "superAdmin" });
+    userLocationId=location._id
+    }
+      
 
     if (!user)
       return res
@@ -365,7 +378,7 @@ const enrollForCertificate = async (req, res) => {
 
     const newCertificate = new CertificateModel({
       userId,
-      locationId,
+      locationId :userLocationId,
       email: user.email,
       certificateNumber,
       certificateName: `Certificate of Completion for, ${location.name}`,
