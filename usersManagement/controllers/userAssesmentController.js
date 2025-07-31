@@ -96,7 +96,7 @@ const submitTestAttempt = async (req, res) => {
 
     if (!locationId || !sectionId || !sectionNumber) {
       const superAdminLocation = await LocationModel.findOne({
-        isSuperAdmin: true,
+        role: "superAdmin",
       });
       testLocationId = superAdminLocation._id;
     } else {
@@ -135,16 +135,25 @@ const submitTestAttempt = async (req, res) => {
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    let userTest = await UserTestAttempts.findOne({
-      userId,
-      locationId,
-      sectionId,
-    });
+    let userTest;
+
+    if (sectionId) {
+      userTest = await UserTestAttempts.findOne({
+        userId,
+        locationId: testLocationId,
+        sectionId,
+      });
+    } else {
+      userTest = await UserTestAttempts.findOne({
+        userId,
+        locationId: testLocationId,
+      });
+    }
 
     if (!userTest) {
       userTest = new UserTestAttempts({
         userId,
-        locationId,
+        locationId :testLocationId,
         sectionId,
         sectionNumber,
         attempts: [],
@@ -158,12 +167,10 @@ const submitTestAttempt = async (req, res) => {
     );
 
     if (todayAttempts.length >= 3) {
-      return res
-        .status(400)
-        .json({
-          status: 400,
-          message: ["You have reached today's 3 attempt limit"],
-        });
+      return res.status(400).json({
+        status: 400,
+        message: ["You have reached today's 3 attempt limit"],
+      });
     }
 
     const attemptNumber = userTest.attempts.length + 1;
