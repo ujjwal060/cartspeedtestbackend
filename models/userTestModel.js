@@ -12,11 +12,11 @@ const userTestAttemptsSchema = new mongoose.Schema({
   },
   sectionId: {
     type: mongoose.Schema.Types.ObjectId,
-    required: true
+    required: false
   },
   sectionNumber: {
     type: String,
-    required: true
+    required: false
   },
 
   attempts: [
