@@ -6,229 +6,99 @@ import QuestionModel from "../../models/questionModel.js";
 import CertificateModel from "../../models/CertificateModel.js";
 import UserModel from "../../models/userModel.js";
 import LocationModel from "../../models/locationModel.js";
-import userLocationModel from "../../models/userLocationMap.js";
 import { logger } from "../../utils/logger.js";
 import { generateCertificateImage } from "../../utils/certificateGenerator.js";
 import { getNextCertificateNumber } from "../../utils/getNextCertificateNumber.js";
 
-// const getAssesmentForUser = async (req, res) => {
-//   try {
-//     const userId = req.user.userId;
-//     const { locationId, sectionNumber, isSectionCompleted, sectionId } =
-//       req.body;
-//     logger.info(
-//       `Fetching assessment for user: ${userId}, location: ${locationId}, section: ${sectionNumber}`
-//     );
-
-//     if (!locationId || !sectionNumber || !sectionId) {
-//       logger.info(
-//         "No location/section provided, returning Super Admin questions"
-//       );
-
-//       if (!locationId) {
-//         const superAdminLocation = await LocationModel.findOne({
-//           role: "superAdmin",
-//         });
-//         if (!superAdminLocation) {
-//           return res.status(404).json({
-//             status: 404,
-//             message: ["SuperAdmin location not found"],
-//           });
-//         }
-//         const CheckLocationId = superAdminLocation._id;
-
-//         const existingTest = await UserTestAttempts.findOne({
-//           userId,
-//           locationId: CheckLocationId,
-//           isSectionCompleted: true,
-//         });
-
-//         if (existingTest) {
-//           const lastAttempt =
-//             existingTest.attempts?.[existingTest.attempts.length - 1];
-
-//           if (lastAttempt?.isPassed) {
-//             return res.status(403).json({
-//               status: 403,
-//               message: ["You have already passed this assessment."],
-//             });
-//           }
-//         }
-//       }
-
-//       const questions = await QuestionModel.find({
-//         isSuperAdmin: true,
-//       })
-//         .limit(10)
-//         .lean();
-
-//       const formattedQuestions = questions.map((q) => ({
-//         _id: q._id,
-//         question: q.question,
-//         options: q.options.map((opt) => ({
-//           text: opt.text,
-//           isCorrect: opt.isCorrect,
-//           _id: opt._id,
-//         })),
-//       }));
-
-//       return res.status(200).json({
-//         status: 200,
-//         message: ["Super Admin default questions fetched successfully"],
-//         data: [
-//           {
-//             sectionId: null,
-//             questions: formattedQuestions,
-//           },
-//         ],
-//       });
-//     }
-
-//     let aggregation = await getAggregation(
-//       userId,
-//       locationId,
-//       sectionNumber,
-//       isSectionCompleted,
-//       sectionId
-//     );
-
-//     const result = await UserVideoProgress.aggregate(aggregation);
-
-//     logger.info(`Assessment fetched successfully for user: ${userId}`);
-
-//     return res.status(200).json({
-//       status: 200,
-//       message: ["video fetched successfully"],
-//       data: result,
-//     });
-//   } catch (error) {
-//     logger.error(
-//       `Error fetching assessment for user: ${req.user?.userId}`,
-//       error.message
-//     );
-//     return res.status(500).json({
-//       status: 500,
-//       message: [error.message],
-//     });
-//   }
-// };
-
 const getAssesmentForUser = async (req, res) => {
   try {
     const userId = req.user.userId;
-    // const { locationId, sectionNumber, isSectionCompleted, sectionId } = req.body;
+    const { locationId, sectionNumber, isSectionCompleted, sectionId } =
+      req.body;
+    logger.info(
+      `Fetching assessment for user: ${userId}, location: ${locationId}, section: ${sectionNumber}`
+    );
 
-    const userLocationData = await userLocationModel.findOne({
-      userId: userId,
-      isCurrent: true,
-    });
-    const userCoordinates = userLocationData?.coordinates?.coordinates;
+    if (!locationId || !sectionNumber || !sectionId) {
+      logger.info(
+        "No location/section provided, returning Super Admin questions"
+      );
 
-    const nearestAdminLocation = await LocationModel.aggregate([
-      {
-        $geoNear: {
-          near: { type: "Point", coordinates: userCoordinates },
-          distanceField: "dist.calculated",
-          spherical: true,
-          query: { role: "admin" },
-        },
-      },
-      { $limit: 1 }, // ✅ separate stage for limit
-    ]);
+      if (!locationId) {
+        const superAdminLocation = await LocationModel.findOne({
+          role: "superAdmin",
+        });
+        if (!superAdminLocation) {
+          return res.status(404).json({
+            status: 404,
+            message: ["SuperAdmin location not found"],
+          });
+        }
+        const CheckLocationId = superAdminLocation._id;
 
-    let matchedAdminLocationId = nearestAdminLocation?.[0]?._id;
+        const existingTest = await UserTestAttempts.findOne({
+          userId,
+          locationId: CheckLocationId,
+          isSectionCompleted: true,
+        });
 
-    if (matchedAdminLocationId) {
-      // ✅ Fetch admin-created questions
-      const adminQuestions = await QuestionModel.find({
-        isSuperAdmin: false,
-        locationId: matchedAdminLocationId,
+        if (existingTest) {
+          const lastAttempt =
+            existingTest.attempts?.[existingTest.attempts.length - 1];
+
+          if (lastAttempt?.isPassed) {
+            return res.status(403).json({
+              status: 403,
+              message: ["You have already passed this assessment."],
+            });
+          }
+        }
+      }
+
+      const questions = await QuestionModel.find({
+        isSuperAdmin: true,
       })
         .limit(10)
         .lean();
 
-      if (adminQuestions.length > 0) {
-        const formattedAdminQuestions = adminQuestions.map((q) => ({
-          _id: q._id,
-          question: q.question,
-          options: q.options.map((opt) => ({
-            text: opt.text,
-            isCorrect: opt.isCorrect,
-            _id: opt._id,
-          })),
-        }));
+      const formattedQuestions = questions.map((q) => ({
+        _id: q._id,
+        question: q.question,
+        options: q.options.map((opt) => ({
+          text: opt.text,
+          isCorrect: opt.isCorrect,
+          _id: opt._id,
+        })),
+      }));
 
-        return res.status(200).json({
-          status: 200,
-          message: ["Admin questions fetched successfully"],
-          data: [
-            {
-              sectionId: null,
-              questions: formattedAdminQuestions,
-            },
-          ],
-        });
-      }
-    }
-
-    const superAdminLocation = await LocationModel.findOne({
-      role: "superAdmin",
-    });
-
-    if (!superAdminLocation) {
-      return res.status(404).json({
-        status: 404,
-        message: ["SuperAdmin location not found"],
+      return res.status(200).json({
+        status: 200,
+        message: ["Super Admin default questions fetched successfully"],
+        data: [
+          {
+            sectionId: null,
+            questions: formattedQuestions,
+          },
+        ],
       });
     }
 
-    const superAdminLocationId = superAdminLocation._id;
-
-    // ✅ Check if user already passed SuperAdmin questions
-    const existingTest = await UserTestAttempts.findOne({
+    let aggregation = await getAggregation(
       userId,
-      locationId: superAdminLocationId,
-      isSectionCompleted: true,
-    });
+      locationId,
+      sectionNumber,
+      isSectionCompleted,
+      sectionId
+    );
 
-    if (existingTest) {
-      const lastAttempt =
-        existingTest.attempts?.[existingTest.attempts.length - 1];
+    const result = await UserVideoProgress.aggregate(aggregation);
 
-      if (lastAttempt?.isPassed) {
-        return res.status(403).json({
-          status: 403,
-          message: ["You have already passed the Super Admin assessment."],
-        });
-      }
-    }
-
-    // ✅ Fetch Super Admin questions
-    const superAdminQuestions = await QuestionModel.find({
-      isSuperAdmin: true,
-    })
-      .limit(10)
-      .lean();
-
-    const formattedSuperAdminQuestions = superAdminQuestions.map((q) => ({
-      _id: q._id,
-      question: q.question,
-      options: q.options.map((opt) => ({
-        text: opt.text,
-        isCorrect: opt.isCorrect,
-        _id: opt._id,
-      })),
-    }));
+    logger.info(`Assessment fetched successfully for user: ${userId}`);
 
     return res.status(200).json({
       status: 200,
-      message: ["Super Admin default questions fetched successfully"],
-      data: [
-        {
-          sectionId: null,
-          questions: formattedSuperAdminQuestions,
-        },
-      ],
+      message: ["video fetched successfully"],
+      data: result,
     });
   } catch (error) {
     logger.error(
@@ -375,117 +245,117 @@ const submitTestAttempt = async (req, res) => {
   }
 };
 
-// const getAggregation = async (
-//   userId,
-//   locationId,
-//   sectionNumber,
-//   isSectionCompleted,
-//   sectionId
-// ) => {
-//   let aggregation = [];
-//   aggregation.push({
-//     $match: {
-//       userId: new ObjectId(userId),
-//     },
-//   });
+const getAggregation = async (
+  userId,
+  locationId,
+  sectionNumber,
+  isSectionCompleted,
+  sectionId
+) => {
+  let aggregation = [];
+  aggregation.push({
+    $match: {
+      userId: new ObjectId(userId),
+    },
+  });
 
-//   aggregation.push({
-//     $match: {
-//       locationId: new ObjectId(locationId),
-//     },
-//   });
+  aggregation.push({
+    $match: {
+      locationId: new ObjectId(locationId),
+    },
+  });
 
-//   aggregation.push({
-//     $unwind: "$sections",
-//   });
-//   aggregation.push({
-//     $match: {
-//       "sections.sectionId": new ObjectId(sectionId),
-//     },
-//   });
-//   // aggregation.push({
-//   //     $match: {
-//   //         // "sections.isSectionCompleted": isSectionCompleted
-//   //     }
-//   // })
-//   aggregation.push({
-//     $unwind: "$sections.videos",
-//   });
+  aggregation.push({
+    $unwind: "$sections",
+  });
+  aggregation.push({
+    $match: {
+      "sections.sectionId": new ObjectId(sectionId),
+    },
+  });
+  // aggregation.push({
+  //     $match: {
+  //         // "sections.isSectionCompleted": isSectionCompleted
+  //     }
+  // })
+  aggregation.push({
+    $unwind: "$sections.videos",
+  });
 
-//   aggregation.push({
-//     $group: {
-//       _id: "$sections.sectionId",
-//       videoIds: {
-//         $addToSet: "$sections.videos.videoId",
-//       },
-//     },
-//   });
+  aggregation.push({
+    $group: {
+      _id: "$sections.sectionId",
+      videoIds: {
+        $addToSet: "$sections.videos.videoId",
+      },
+    },
+  });
 
-//   aggregation.push({
-//     $lookup: {
-//       from: "questions",
-//       let: {
-//         videoIds: "$videoIds",
-//         sectionId: "$_id",
-//       },
-//       pipeline: [
-//         {
-//           $match: {
-//             $expr: {
-//               $and: [
-//                 { $in: ["$videoId", "$$videoIds"] },
-//                 { $eq: ["$sectionId", "$$sectionId"] },
-//                 { $eq: ["$locationId", new ObjectId(locationId)] },
-//                 { $eq: ["$sectionNumber", sectionNumber.toString()] },
-//               ],
-//             },
-//           },
-//         },
-//       ],
-//       as: "questions",
-//     },
-//   });
+  aggregation.push({
+    $lookup: {
+      from: "questions",
+      let: {
+        videoIds: "$videoIds",
+        sectionId: "$_id",
+      },
+      pipeline: [
+        {
+          $match: {
+            $expr: {
+              $and: [
+                { $in: ["$videoId", "$$videoIds"] },
+                { $eq: ["$sectionId", "$$sectionId"] },
+                { $eq: ["$locationId", new ObjectId(locationId)] },
+                { $eq: ["$sectionNumber", sectionNumber.toString()] },
+              ],
+            },
+          },
+        },
+      ],
+      as: "questions",
+    },
+  });
 
-//   // aggregation.push({
-//   //     $project: {
-//   //         _id: 0,
-//   //         sectionId: "$_id",
-//   //         questions: {
-//   //             $slice: ["$questions", 10]
-//   //         }
-//   //     }
-//   // });
+  // aggregation.push({
+  //     $project: {
+  //         _id: 0,
+  //         sectionId: "$_id",
+  //         questions: {
+  //             $slice: ["$questions", 10]
+  //         }
+  //     }
+  // });
 
-//   aggregation.push({
-//     $project: {
-//       _id: 0,
-//       sectionId: "$_id",
-//       questions: {
-//         $map: {
-//           input: { $slice: ["$questions", 10] },
-//           as: "q",
-//           in: {
-//             _id: "$$q._id",
-//             question: "$$q.question",
-//             options: {
-//               $map: {
-//                 input: "$$q.options",
-//                 as: "opt",
-//                 in: {
-//                   text: "$$opt.text",
-//                   isCorrect: "$$opt.isCorrect",
-//                   _id: "$$opt._id",
-//                 },
-//               },
-//             },
-//           },
-//         },
-//       },
-//     },
-//   });
+  aggregation.push({
+    $project: {
+      _id: 0,
+      sectionId: "$_id",
+      questions: {
+        $map: {
+          input: { $slice: ["$questions", 10] },
+          as: "q",
+          in: {
+            _id: "$$q._id",
+            question: "$$q.question",
+            options: {
+              $map: {
+                input: "$$q.options",
+                as: "opt",
+                in: {
+                  text: "$$opt.text",
+                  isCorrect: "$$opt.isCorrect",
+                  _id: "$$opt._id",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
 
-//   return aggregation;
-// };
+  return aggregation;
+};
 
 const enrollForCertificate = async (req, res) => {
   try {
