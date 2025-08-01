@@ -24,18 +24,19 @@ const createQuestion = async (req, res) => {
             const locationdata = await adminModel.findById(adminId);
             finalLocationId = locationdata.location;
         }else{
-            finalLocationId = locationId;
+            const locationdata = await adminModel.findById(adminId);
+            finalLocationId = locationdata.location;;
         }
 
-         if (!isSuperAdmin) {
-            if (!options || !videoId || !question || !locationId || !sectionNumber || !adminId) {
-                logger.warn('Missing required fields in createQuestion');
-                return res.status(400).json({
-                    status: 400,
-                    message: ['Required fields are missing.'],
-                });
-            }
-        }
+        //  if (!isSuperAdmin) {
+        //     if (!options || !videoId || !question || !locationId || !sectionNumber || !adminId) {
+        //         logger.warn('Missing required fields in createQuestion');
+        //         return res.status(400).json({
+        //             status: 400,
+        //             message: ['Required fields are missing.'],
+        //         });
+        //     }
+        // }
 
 
         const newQuestion = new QuestionModel({

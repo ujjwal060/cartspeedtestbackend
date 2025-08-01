@@ -13,23 +13,23 @@ const questionSchema = new mongoose.Schema({
       return true
     }
   },
-  sectionNumber: {
-    type: String, required: function () {
-      return !this.isSuperAdmin;
-    }
-  },
-  sectionId: {
-    type: mongoose.Schema.Types.ObjectId,
-    required: function () {
-      return !this.isSuperAdmin;
-    }
-  },
-  videoId: {
-    type: mongoose.Schema.Types.ObjectId,
-    required: function () {
-      return !this.isSuperAdmin;
-    }
-  },
+  // sectionNumber: {
+  //   type: String, required: function () {
+  //     return !this.isSuperAdmin;
+  //   }
+  // },
+  // sectionId: {
+  //   type: mongoose.Schema.Types.ObjectId,
+  //   required: function () {
+  //     return !this.isSuperAdmin;
+  //   }
+  // },
+  // videoId: {
+  //   type: mongoose.Schema.Types.ObjectId,
+  //   required: function () {
+  //     return !this.isSuperAdmin;
+  //   }
+  // },
   adminId: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', required: true },
   isSuperAdmin: {
     type: Boolean,
