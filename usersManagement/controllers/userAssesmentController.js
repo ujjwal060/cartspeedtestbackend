@@ -42,14 +42,16 @@ const getAssesmentForUser = async (req, res) => {
           isSectionCompleted: true,
         });
 
-        const lastAttempt =
-          existingTest.attempts?.[existingTest.attempts.length - 1];
+        if (existingTest) {
+          const lastAttempt =
+            existingTest.attempts?.[existingTest.attempts.length - 1];
 
-        if (lastAttempt?.isPassed) {
-          return res.status(403).json({
-            status: 403,
-            message: ["You have already passed this assessment."],
-          });
+          if (lastAttempt?.isPassed) {
+            return res.status(403).json({
+              status: 403,
+              message: ["You have already passed this assessment."],
+            });
+          }
         }
       }
 
