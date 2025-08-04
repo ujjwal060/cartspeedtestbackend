@@ -6,6 +6,7 @@ import QuestionModel from "../../models/questionModel.js";
 import CertificateModel from "../../models/CertificateModel.js";
 import UserModel from "../../models/userModel.js";
 import LocationModel from "../../models/locationModel.js";
+import userLocationModel from "../../models/userLocationMap.js";
 import { logger } from "../../utils/logger.js";
 import { generateCertificateImage } from "../../utils/certificateGenerator.js";
 import { getNextCertificateNumber } from "../../utils/getNextCertificateNumber.js";
@@ -13,92 +14,96 @@ import { getNextCertificateNumber } from "../../utils/getNextCertificateNumber.j
 const getAssesmentForUser = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { locationId, sectionNumber, isSectionCompleted, sectionId } =
-      req.body;
-    logger.info(
-      `Fetching assessment for user: ${userId}, location: ${locationId}, section: ${sectionNumber}`
-    );
 
-    if (!locationId || !sectionNumber || !sectionId) {
-      logger.info(
-        "No location/section provided, returning Super Admin questions"
-      );
+    const userLocationData = await userLocationModel.findOne({
+      userId: new ObjectId(userId),
+      isCurrent: true,
+    });
 
-      if (!locationId) {
-        const superAdminLocation = await LocationModel.findOne({
-          role: "superAdmin",
-        });
-        if (!superAdminLocation) {
-          return res.status(404).json({
-            status: 404,
-            message: ["SuperAdmin location not found"],
-          });
-        }
-        const CheckLocationId = superAdminLocation._id;
+    const userCoordinates = userLocationData.coordinates.coordinates;
+    const nearbyLocations = await LocationModel.findOne({
+      role: "admin",
+      geometry: {
+        $geoIntersects: {
+          $geometry: {
+            type: "Point",
+            coordinates: userCoordinates,
+          },
+        },
+      },
+    });
 
-        const existingTest = await UserTestAttempts.findOne({
-          userId,
-          locationId: CheckLocationId,
-          isSectionCompleted: true,
-        });
+    let selectedLocationId;
+    let locationRole = "superAdmin";
 
-        if (existingTest) {
-          const lastAttempt =
-            existingTest.attempts?.[existingTest.attempts.length - 1];
-
-          if (lastAttempt?.isPassed) {
-            return res.status(403).json({
-              status: 403,
-              message: ["You have already passed this assessment."],
+     if (nearbyLocations) {
+          selectedLocationId = nearbyLocations._id;
+          locationRole = "admin";
+        } else {
+          const superAdminLocation = await LocationModel.findOne({ role: "superAdmin" });
+          if (!superAdminLocation) {
+            return res.status(404).json({
+              status: 404,
+              message: ["SuperAdmin location not found"],
             });
           }
+          selectedLocationId = superAdminLocation._id;
         }
-      }
 
-      const questions = await QuestionModel.find({
-        isSuperAdmin: true,
+   const existingTest = await UserTestAttempts.findOne({
+      userId,
+      locationId: selectedLocationId,
+      isSectionCompleted: true,
+    });
+
+    if (existingTest) {
+      const lastAttempt = existingTest.attempts?.[existingTest.attempts.length - 1];
+      if (lastAttempt?.isPassed) {
+        return res.status(403).json({
+          status: 403,
+          message: ["You have already passed this assessment."],
+        });
+      }
+    }
+
+     let questions = await QuestionModel.find({
+      locationId: selectedLocationId,
+    })
+      .limit(10)
+      .lean();
+
+      if (questions.length === 0 && locationRole === "admin") {
+      const superAdminLocation = await LocationModel.findOne({ role: "superAdmin" });
+      selectedLocationId = superAdminLocation._id;
+
+      questions = await QuestionModel.find({
+        locationId: selectedLocationId,
       })
         .limit(10)
         .lean();
 
-      const formattedQuestions = questions.map((q) => ({
-        _id: q._id,
-        question: q.question,
-        options: q.options.map((opt) => ({
-          text: opt.text,
-          isCorrect: opt.isCorrect,
-          _id: opt._id,
-        })),
-      }));
-
-      return res.status(200).json({
-        status: 200,
-        message: ["Super Admin default questions fetched successfully"],
-        data: [
-          {
-            sectionId: null,
-            questions: formattedQuestions,
-          },
-        ],
-      });
+      isSuperAdmin = true;
     }
 
-    let aggregation = await getAggregation(
-      userId,
-      locationId,
-      sectionNumber,
-      isSectionCompleted,
-      sectionId
-    );
+    const formattedQuestions = questions.map((q) => ({
+      _id: q._id,
+      question: q.question,
+      options: q.options.map((opt) => ({
+        text: opt.text,
+        isCorrect: opt.isCorrect,
+        _id: opt._id,
+      })),
+    }));
 
-    const result = await UserVideoProgress.aggregate(aggregation);
-
-    logger.info(`Assessment fetched successfully for user: ${userId}`);
-
-    return res.status(200).json({
+     return res.status(200).json({
       status: 200,
-      message: ["video fetched successfully"],
-      data: result,
+      message: [`${locationRole} questions fetched successfully`],
+      data: [
+        {
+          locationId: selectedLocationId,
+          questions: formattedQuestions,
+        },
+      ],
     });
   } catch (error) {
     logger.error(
@@ -115,24 +120,19 @@ const getAssesmentForUser = async (req, res) => {
 const submitTestAttempt = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { locationId, sectionId, sectionNumber, questions, duration } =
-      req.body;
+    const { locationId, questions, duration } = req.body;
 
-    let testLocationId;
+    if (!locationId || !Array.isArray(questions) || questions.length === 0) {
+      return res.status(400).json({
+        status: 400,
+        message: ["locationId and questions are required"],
+      });
+    }
 
     const questionIds = questions.map((q) => q.questionId);
     const correctQuestions = await QuestionModel.find({
       _id: { $in: questionIds },
     });
-
-    if (!locationId || !sectionId || !sectionNumber) {
-      const superAdminLocation = await LocationModel.findOne({
-        role: "superAdmin",
-      });
-      testLocationId = superAdminLocation._id;
-    } else {
-      testLocationId = locationId;
-    }
 
     let correctAnswers = 0;
 
@@ -166,27 +166,15 @@ const submitTestAttempt = async (req, res) => {
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    let userTest;
-
-    if (sectionId) {
-      userTest = await UserTestAttempts.findOne({
-        userId,
-        locationId: testLocationId,
-        sectionId,
-      });
-    } else {
-      userTest = await UserTestAttempts.findOne({
-        userId,
-        locationId: testLocationId,
-      });
-    }
+    let userTest = await UserTestAttempts.findOne({
+      userId,
+      locationId,
+    });
 
     if (!userTest) {
       userTest = new UserTestAttempts({
         userId,
-        locationId: testLocationId,
-        sectionId,
-        sectionNumber,
+        locationId,
         attempts: [],
       });
     }
@@ -245,117 +233,6 @@ const submitTestAttempt = async (req, res) => {
   }
 };
 
-const getAggregation = async (
-  userId,
-  locationId,
-  sectionNumber,
-  isSectionCompleted,
-  sectionId
-) => {
-  let aggregation = [];
-  aggregation.push({
-    $match: {
-      userId: new ObjectId(userId),
-    },
-  });
-
-  aggregation.push({
-    $match: {
-      locationId: new ObjectId(locationId),
-    },
-  });
-
-  aggregation.push({
-    $unwind: "$sections",
-  });
-  aggregation.push({
-    $match: {
-      "sections.sectionId": new ObjectId(sectionId),
-    },
-  });
-  // aggregation.push({
-  //     $match: {
-  //         // "sections.isSectionCompleted": isSectionCompleted
-  //     }
-  // })
-  aggregation.push({
-    $unwind: "$sections.videos",
-  });
-
-  aggregation.push({
-    $group: {
-      _id: "$sections.sectionId",
-      videoIds: {
-        $addToSet: "$sections.videos.videoId",
-      },
-    },
-  });
-
-  aggregation.push({
-    $lookup: {
-      from: "questions",
-      let: {
-        videoIds: "$videoIds",
-        sectionId: "$_id",
-      },
-      pipeline: [
-        {
-          $match: {
-            $expr: {
-              $and: [
-                { $in: ["$videoId", "$$videoIds"] },
-                { $eq: ["$sectionId", "$$sectionId"] },
-                { $eq: ["$locationId", new ObjectId(locationId)] },
-                { $eq: ["$sectionNumber", sectionNumber.toString()] },
-              ],
-            },
-          },
-        },
-      ],
-      as: "questions",
-    },
-  });
-
-  // aggregation.push({
-  //     $project: {
-  //         _id: 0,
-  //         sectionId: "$_id",
-  //         questions: {
-  //             $slice: ["$questions", 10]
-  //         }
-  //     }
-  // });
-
-  aggregation.push({
-    $project: {
-      _id: 0,
-      sectionId: "$_id",
-      questions: {
-        $map: {
-          input: { $slice: ["$questions", 10] },
-          as: "q",
-          in: {
-            _id: "$$q._id",
-            question: "$$q.question",
-            options: {
-              $map: {
-                input: "$$q.options",
-                as: "opt",
-                in: {
-                  text: "$$opt.text",
-                  isCorrect: "$$opt.isCorrect",
-                  _id: "$$opt._id",
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  });
-
-  return aggregation;
-};
 
 const enrollForCertificate = async (req, res) => {
   try {

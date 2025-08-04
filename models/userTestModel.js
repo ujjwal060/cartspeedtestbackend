@@ -10,14 +10,14 @@ const userTestAttemptsSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     required: true
   },
-  sectionId: {
-    type: mongoose.Schema.Types.ObjectId,
-    required: false
-  },
-  sectionNumber: {
-    type: String,
-    required: false
-  },
+  // sectionId: {
+  //   type: mongoose.Schema.Types.ObjectId,
+  //   required: false
+  // },
+  // sectionNumber: {
+  //   type: String,
+  //   required: false
+  // },
 
   attempts: [
     {
@@ -53,14 +53,14 @@ const userTestAttemptsSchema = new mongoose.Schema({
     }
   ],
 
-  isSectionCompleted: {
-    type: Boolean,
-    default: false
-  },
-  nextSectionUnlocked: {
-    type: Boolean,
-    default: false
-  },
+  // isSectionCompleted: {
+  //   type: Boolean,
+  //   default: false
+  // },
+  // nextSectionUnlocked: {
+  //   type: Boolean,
+  //   default: false
+  // },
   completedAt: {
     type: Date,
     default: null
