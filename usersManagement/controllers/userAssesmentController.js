@@ -53,7 +53,7 @@ const getAssesmentForUser = async (req, res) => {
    const existingTest = await UserTestAttempts.findOne({
       userId,
       locationId: selectedLocationId,
-      isSectionCompleted: true,
+      // isSectionCompleted: true,
     });
 
     if (existingTest) {
