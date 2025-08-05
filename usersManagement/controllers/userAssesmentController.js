@@ -159,7 +159,7 @@ const submitTestAttempt = async (req, res) => {
 
     const totalQuestions = questions.length;
     const score = Math.round((correctAnswers / totalQuestions) * 100);
-    const isPassed = score >= 60;
+    const isPassed = score >= 70;
 
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
