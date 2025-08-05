@@ -27,7 +27,7 @@ const adminRegister = async (req, res) => {
         }
 
         if (role === 'admin') {
-            const existingAdmin = await adminModel.findOne({ email });
+            const existingAdmin = await adminModel.findOne({ email , mobile});
             if (existingAdmin) {
                 logger.warn("Admin with the same email already exists", { email });
                 return res.status(400).json({
