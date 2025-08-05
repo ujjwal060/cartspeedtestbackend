@@ -27,7 +27,7 @@ const addOrUpdateUserLocation = async (req, res) => {
             coordinates: {
                 $nearSphere: {
                     $geometry: { type: "Point", coordinates },
-                    $maxDistance: maxDistanceInMeters
+                    // $maxDistance: maxDistanceInMeters
                 }
             }
         });
@@ -84,7 +84,7 @@ const gateLocationGeofence = async (req, res) => {
                 message: ['User location not found'],
             });
         }
-        const userCoords = userLoc.coordinates.coordinates;
+        const userCoords = [...userLoc.coordinates.coordinates];
 
         let matchedLocation = await locationModel.findOne({
             geometry: {
