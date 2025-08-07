@@ -288,7 +288,7 @@ const enrollForCertificate = async (req, res) => {
       locationId: userLocationId,
       email: user.email,
       certificateNumber,
-      certificateName: `Certificate of Completion for, ${location.name}`,
+      certificateName: `Certificate of Completion to ${user.name} for ${location.name}`,
       certificateIssuedBy: "CARTIE APP",
       status: "Active",
       issueDate,
