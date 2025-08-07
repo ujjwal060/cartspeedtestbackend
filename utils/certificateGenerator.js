@@ -101,7 +101,6 @@ const generateCertificateImage = async (certificateData) => {
                     .footer-right {
                         text-align: center;
                         width:20%;
-                         font-family: monospace;
                         font-weight: bold;
                         text-transform: uppercase;
                         color: #39393b;
@@ -109,7 +108,6 @@ const generateCertificateImage = async (certificateData) => {
                     }
                     .footer-info {
                         text-align: left;
-                        font-family: monospace;
                         font-weight: bold;
                         text-transform: uppercase;
                         color: #39393b;
