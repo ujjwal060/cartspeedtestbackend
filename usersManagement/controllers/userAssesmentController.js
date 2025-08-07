@@ -297,7 +297,7 @@ const enrollForCertificate = async (req, res) => {
     });
 
     const certificateUrl = await generateCertificateImage({
-      certificateName: newCertificate.certificateName,
+      certificateName: `Certificate of Completion to ${user.name} <br/> for ${location.name}`,
       locationName: location.name,
       email: user.email,
       certificateNumber: newCertificate.certificateNumber,
