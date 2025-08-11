@@ -460,7 +460,7 @@ const checkAndSaveLocation = async ({
       };
     }
 
-    const existingLocation = await locationModel.findOne({ zipCode });
+    const existingLocation = await locationModel.findOne({ zipCode:zipCode, role: "admin" });
     if (existingLocation) {
       return {
         success: false,
