@@ -733,11 +733,11 @@ const deleteSaftyVideo = async (req, res) => {
       }
     }
 
-    res.status(200).json({ message: "Video deleted successfully" });
+    res.status(200).json({ message: ["Video deleted successfully"] });
   } catch (error) {
     res
       .status(500)
-      .json({ message: "Error deleting video", error: error.message });
+      .json({ message: ["Error deleting video", error.message] });
   }
 };
 
