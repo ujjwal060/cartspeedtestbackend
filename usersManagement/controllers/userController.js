@@ -180,7 +180,7 @@ const loginUser = async (req, res) => {
         const accessToken = jwt.sign(
             { userid: user._id },
             config.ACCESS_TOKEN_SECRET,
-            { expiresIn: "2m" }
+            { expiresIn: "1h" }
         );
 
         const refreshToken = jwt.sign(
