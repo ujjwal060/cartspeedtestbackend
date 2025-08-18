@@ -358,6 +358,8 @@ const getAllCerificate = async (req, res) => {
     aggregation.push({
       $project: {
         _id: 1,
+        userId: 1,
+        certificateIssuedBy: 1,
         locationId: 1,
         certificateNumber: 1,
         certificateName: 1,
