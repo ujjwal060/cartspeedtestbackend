@@ -213,13 +213,14 @@ const submitTestAttempt = async (req, res) => {
 
     await userTest.save();
 
-    let populatedAttempt = null;
+   let passedAttemptDetails = [];
     if (isPassed) {
-      const populatedData = await UserTestAttempts.findOne({ userId, locationId })
+      const populated = await UserTestAttempts.findOne({ userId, locationId })
         .populate('attempts.questions.questionId', 'question options')
         .lean();
 
-      populatedAttempt = populatedData.attempts.find(a => a.attemptNumber === attemptNumber);
+      const lastPassedAttempt = populated.attempts.find(a => a.attemptNumber === attemptNumber && a.isPassed);
+      passedAttemptDetails = lastPassedAttempt ? lastPassedAttempt.questions : [];
     }
 
     return res.status(200).json({
@@ -232,7 +233,7 @@ const submitTestAttempt = async (req, res) => {
         correctAnswers,
         attemptNumber,
         sectionCompleted: userTest.isSectionCompleted,
-        passedAttemptDetails: isPassed ? populatedAttempt : null
+        passedAttemptDetails
       },
     });
   } catch (error) {
