@@ -213,6 +213,15 @@ const submitTestAttempt = async (req, res) => {
 
     await userTest.save();
 
+    let populatedAttempt = null;
+    if (isPassed) {
+      const populatedData = await UserTestAttempts.findOne({ userId, locationId })
+        .populate('attempts.questions.questionId', 'question options')
+        .lean();
+
+      populatedAttempt = populatedData.attempts.find(a => a.attemptNumber === attemptNumber);
+    }
+
     return res.status(200).json({
       message: ["Attempt submitted successfully"],
       status: 200,
@@ -223,6 +232,7 @@ const submitTestAttempt = async (req, res) => {
         correctAnswers,
         attemptNumber,
         sectionCompleted: userTest.isSectionCompleted,
+        passedAttemptDetails: isPassed ? populatedAttempt : null
       },
     });
   } catch (error) {
@@ -232,7 +242,6 @@ const submitTestAttempt = async (req, res) => {
     });
   }
 };
-
 
 const enrollForCertificate = async (req, res) => {
   try {

@@ -10,15 +10,6 @@ const userTestAttemptsSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     required: true
   },
-  // sectionId: {
-  //   type: mongoose.Schema.Types.ObjectId,
-  //   required: false
-  // },
-  // sectionNumber: {
-  //   type: String,
-  //   required: false
-  // },
-
   attempts: [
     {
       attemptNumber: Number,
