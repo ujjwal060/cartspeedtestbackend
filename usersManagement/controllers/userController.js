@@ -167,6 +167,7 @@ const verifyOtp = async (req, res) => {
 
         user.otp = undefined;
         user.otpExpire = undefined;
+        user.isVerified = true;
 
         await user.save();
 
