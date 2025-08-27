@@ -16,24 +16,72 @@ const registerUser = async (req, res) => {
 
         const existingUser = await UserModel.findOne({ $or: [{ email }, { mobile }] });
 
+        // if (existingUser) {
+        //     if (existingUser.email === email && existingUser.mobile === mobile) {
+        //         logger.warn("Attempt to register with existing email and mobile", { email, mobile });
+        //         return res.status(400).json({
+        //             status: 400,
+        //             message: ['Email and mobile are already registered. Please use a different email or mobile.'],
+        //         });
+        //     } else if (existingUser.email === email) {
+        //         logger.warn("Attempt to register with existing email", { email });
+        //         return res.status(400).json({
+        //             status: 400,
+        //             message: ['Email is already registered. Please use a different email.'],
+        //         });
+        //     } else if (existingUser.mobile === mobile) {
+        //         logger.warn("Attempt to register with existing mobile", { mobile });
+        //         return res.status(400).json({
+        //             status: 400,
+        //             message: ['Mobile number is already registered. Please use a different mobile number.'],
+        //         });
+        //     }
+        // }
+
         if (existingUser) {
-            if (existingUser.email === email && existingUser.mobile === mobile) {
-                logger.warn("Attempt to register with existing email and mobile", { email, mobile });
-                return res.status(400).json({
-                    status: 400,
-                    message: ['Email and mobile are already registered. Please use a different email or mobile.'],
-                });
-            } else if (existingUser.email === email) {
-                logger.warn("Attempt to register with existing email", { email });
-                return res.status(400).json({
-                    status: 400,
-                    message: ['Email is already registered. Please use a different email.'],
-                });
-            } else if (existingUser.mobile === mobile) {
-                logger.warn("Attempt to register with existing mobile", { mobile });
-                return res.status(400).json({
-                    status: 400,
-                    message: ['Mobile number is already registered. Please use a different mobile number.'],
+            if (existingUser.isVerified) {
+                if (existingUser.email === email && existingUser.mobile === mobile) {
+                    logger.warn("Attempt to register with existing email and mobile", { email, mobile });
+                    return res.status(400).json({
+                        status: 400,
+                        message: ['Email and mobile are already registered. Please use a different email or mobile.'],
+                    });
+                } else if (existingUser.email === email) {
+                    logger.warn("Attempt to register with existing email", { email });
+                    return res.status(400).json({
+                        status: 400,
+                        message: ['Email is already registered. Please use a different email.'],
+                    });
+                } else if (existingUser.mobile === mobile) {
+                    logger.warn("Attempt to register with existing mobile", { mobile });
+                    return res.status(400).json({
+                        status: 400,
+                        message: ['Mobile number is already registered. Please use a different mobile number.'],
+                    });
+                }
+            } else {
+                const otp = generateOTP();
+                existingUser.otp = otp;
+                existingUser.otpExpire = new Date(Date.now() + 10 * 60 * 1000);
+                await existingUser.save();
+
+                logger.info("Resending OTP for unverified user", { email, otp });
+
+                const { subject, body } = emailTamplates.otpVerification(existingUser.name, otp);
+                const otpSent = await sendEmail({ email: existingUser.email, subject, body });
+
+                if (!otpSent.success) {
+                    logger.error("OTP resend failed", { mobile, error: otpSent.message });
+                    return res.status(500).json({
+                        status: 500,
+                        message: [otpSent.message],
+                    });
+                }
+
+                logger.info("OTP resent successfully", { mobile });
+                return res.status(200).json({
+                    status: 200,
+                    message: ['User already exists but not verified. OTP resent successfully.'],
                 });
             }
         }
