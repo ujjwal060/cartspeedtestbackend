@@ -49,7 +49,7 @@ const getAllUsers = async (req, res) => {
             const escapedAddress = filters.address.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
             aggregation.push({
                 $match: {
-                    "locationInfo.name": {
+                    address: {
                         $regex: escapedAddress,
                         $options: "i",
                     },
