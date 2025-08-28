@@ -26,6 +26,7 @@ const getAllCertificateAdmin = async (req, res) => {
             status,
             startDate,
             endDate,
+            email
         } = filters;
 
         let aggregation = [];
@@ -47,8 +48,15 @@ const getAllCertificateAdmin = async (req, res) => {
         }
 
         const dateMatch = {};
-        if (startDate) dateMatch.issueDate = { ...dateMatch.issueDate, $gte: new Date(startDate) };
-        if (endDate) dateMatch.issueDate = { ...dateMatch.issueDate, $lte: new Date(endDate) };
+        if (startDate || endDate) {
+            dateMatch.issueDate = {};
+            if (startDate) dateMatch.issueDate.$gte = new Date(startDate);
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999);
+                dateMatch.issueDate.$lte = end;
+            }
+        }
 
         const combinedMatch = { ...matchAdminStage, ...dateMatch };
         if (Object.keys(combinedMatch).length > 0) {
@@ -116,6 +124,12 @@ const getAllCertificateAdmin = async (req, res) => {
         if (certificateNumber) {
             aggregation.push({
                 $match: { certificateNumber }
+            });
+        }
+
+        if (email) {
+            aggregation.push({
+                $match: { email }
             });
         }
 
