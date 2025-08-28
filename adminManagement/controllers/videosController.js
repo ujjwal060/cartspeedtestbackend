@@ -634,11 +634,23 @@ const gateAggregationSaftyVideo = async ({
     },
   });
 
+  // if (filters?.locationName) {
+  //   aggregation.push({
+  //     $match: {
+  //       "locationInfo.name": {
+  //         $regex: filters.locationName,
+  //         $options: "i",
+  //       },
+  //     },
+  //   });
+  // }
+
   if (filters?.locationName) {
+    const escapedLocation = filters.locationName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     aggregation.push({
       $match: {
         "locationInfo.name": {
-          $regex: filters.locationName,
+          $regex: escapedLocation,
           $options: "i",
         },
       },
