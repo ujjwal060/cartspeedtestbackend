@@ -37,10 +37,10 @@ const getAllUsers = async (req, res) => {
                 }
             })
         };
-        if (filters?.state) {
+        if (filters?.address) {
             aggregation.push({
                 $match: {
-                    address: filters?.state
+                    address: filters?.address
                 }
             })
         };
