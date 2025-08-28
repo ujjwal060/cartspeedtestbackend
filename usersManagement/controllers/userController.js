@@ -650,6 +650,33 @@ const updateProfileImage = async (req, res) => {
     }
 }
 
+const deleteAccount = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        const deletedUser = await UserModel.findByIdAndDelete(userId);
+
+        if (!deletedUser) {
+            return res.status(404).json({
+                status: 404,
+                message: ['User not found.'],
+            });
+        }
+
+        logger.info(`User account deleted - User ID: ${userId}`);
+        return res.status(200).json({
+            status: 200,
+            message: ['User account deleted successfully.'],
+        });
+    } catch (error) {
+        logger.error(`Error deleting user account - User ID: ${req.params.userId}`, { error });
+        return res.status(500).json({
+            status: 500,
+            message: [error.message],
+        });
+    }
+}
+
 export {
     registerUser,
     verifyOtp,
@@ -661,5 +688,6 @@ export {
     changePassword,
     getProfileById,
     updateProfile,
-    updateProfileImage
+    updateProfileImage,
+    deleteAccount
 };

@@ -100,6 +100,33 @@ const getAllUsers = async (req, res) => {
     }
 }
 
+const deleteUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await userModel.findByIdAndDelete(id);
+
+        if (!result) {
+            return res.status(404).json({
+                status: 404,
+                message: ['User not found.'],
+            });
+        }
+
+        logger.info(`admin-Deleted user ${id}`);
+        return res.status(200).json({
+            status: 200,
+            message: ['User deleted successfully.'],
+        });
+    } catch (error) {
+        logger.error(`admin-delete user Error`, error.message);
+        return res.status(500).json({
+            status: 500,
+            message: [error.message],
+        });
+    }
+}
+
 export {
-    getAllUsers
+    getAllUsers,
+    deleteUser
 }

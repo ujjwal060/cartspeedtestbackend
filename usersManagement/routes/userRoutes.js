@@ -18,7 +18,8 @@ import {
     verifyOtp,
     getProfileById,
     updateProfile,
-    updateProfileImage
+    updateProfileImage,
+    deleteAccount
 } from '../controllers/userController.js';
 import {
     authenticateUser,
@@ -41,6 +42,7 @@ router.post('/refreshToken', refreshToken);
 router.get('/getProfile/:id',authenticateUser,getProfileById);
 router.put('/updateProfile/:userId',validateRequest(updateProfileSchema),authenticateUser,updateProfile);
 router.put('/profileImage/:userId',authenticateUser,uploadToS3,updateProfileImage);
+router.delete('/deleteAccount/:userId',authenticateUser,deleteAccount);
 
 
 export default router;
