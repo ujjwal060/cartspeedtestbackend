@@ -37,13 +37,25 @@ const getAllUsers = async (req, res) => {
                 }
             })
         };
+        // if (filters?.address) {
+        //     aggregation.push({
+        //         $match: {
+        //             address: filters?.address
+        //         }
+        //     })
+        // };
+
         if (filters?.address) {
+            const escapedAddress = filters.address.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
             aggregation.push({
                 $match: {
-                    address: filters?.address
-                }
-            })
-        };
+                    "locationInfo.name": {
+                        $regex: escapedAddress,
+                        $options: "i",
+                    },
+                },
+            });
+        }
 
         if (filters?.startDate || filters?.endDate) {
             const dateRange = {};
