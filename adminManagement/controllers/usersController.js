@@ -1,4 +1,7 @@
 import userModel from "../../models/userModel.js";
+import userlocation from "../../models/userLocationMap.js";
+import userTestAttempt from "../../models/userTestModel.js";
+import certificate from "../../models/CertificateModel.js";
 import { logger } from "../../utils/logger.js";
 
 const getAllUsers = async (req, res) => {
@@ -103,19 +106,27 @@ const getAllUsers = async (req, res) => {
 const deleteUser = async (req, res) => {
     try {
         const { id } = req.params;
-        const result = await userModel.findByIdAndDelete(id);
 
-        if (!result) {
+        const user = await userModel.findById(id);
+        if (!user) {
             return res.status(404).json({
                 status: 404,
                 message: ['User not found.'],
             });
         }
 
-        logger.info(`admin-Deleted user ${id}`);
+        await Promise.all([
+            userlocation.deleteMany({ userId: id }),
+            userTestAttempt.deleteMany({ userId: id }),
+            certificate.deleteMany({ userId: id }),
+        ]);
+
+        await userModel.findByIdAndDelete(id);
+
+        logger.info(`admin-Deleted user ${id} and all related data`);
         return res.status(200).json({
             status: 200,
-            message: ['User deleted successfully.'],
+            message: ['User and all related data deleted successfully.'],
         });
     } catch (error) {
         logger.error(`admin-delete user Error`, error.message);
@@ -124,7 +135,7 @@ const deleteUser = async (req, res) => {
             message: [error.message],
         });
     }
-}
+};
 
 export {
     getAllUsers,

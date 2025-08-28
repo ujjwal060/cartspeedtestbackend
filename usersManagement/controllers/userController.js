@@ -6,6 +6,9 @@ import { hashPassword } from '../../utils/passwordUtils.js';
 import { generateOTP, sendEmail } from '../../utils/otpUtils.js';
 import { emailTamplates } from "../../utils/emailTemplate.js";
 import { logger } from "../../utils/logger.js";
+import userlocation from "../../models/userLocationMap.js";
+import userTestAttempt from "../../models/userTestModel.js";
+import certificate from "../../models/CertificateModel.js";
 import { loadConfig } from "../../config/loadConfig.js";
 
 
@@ -652,24 +655,31 @@ const updateProfileImage = async (req, res) => {
 
 const deleteAccount = async (req, res) => {
     try {
-        const { userId } = req.params;
+        const { id } = req.params;
 
-        const deletedUser = await UserModel.findByIdAndDelete(userId);
-
-        if (!deletedUser) {
+        const user = await UserModel.findById(id);
+        if (!user) {
             return res.status(404).json({
                 status: 404,
                 message: ['User not found.'],
             });
         }
 
-        logger.info(`User account deleted - User ID: ${userId}`);
+        await Promise.all([
+            userlocation.deleteMany({ userId: id }),
+            userTestAttempt.deleteMany({ userId: id }),
+            certificate.deleteMany({ userId: id }),
+        ]);
+
+        await userModel.findByIdAndDelete(id);
+
+        logger.info(`admin-Deleted user ${id} and all related data`);
         return res.status(200).json({
             status: 200,
-            message: ['User account deleted successfully.'],
+            message: ['User and all related data deleted successfully.'],
         });
     } catch (error) {
-        logger.error(`Error deleting user account - User ID: ${req.params.userId}`, { error });
+        logger.error(`admin-delete user Error`, error.message);
         return res.status(500).json({
             status: 500,
             message: [error.message],
