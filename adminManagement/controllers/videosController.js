@@ -151,8 +151,7 @@ const deleteVideos = async (req, res) => {
       `Deleted ${deletedQuestions.deletedCount} questions for video ID: ${videoId}`
     );
     logger.info(
-      `Video deleted from section: ${videoId} by admin: ${
-        req.user?.id || "Unknown"
+      `Video deleted from section: ${videoId} by admin: ${req.user?.id || "Unknown"
       }`
     );
 
@@ -521,12 +520,13 @@ const getSaftyVideos = async (req, res) => {
   try {
     const adminId = req.user.id;
     const role = req.user.role;
-    const { offset, limit } = req.body;
+    const { offset, limit, filters } = req.body;
     let aggregation = await gateAggregationSaftyVideo({
       adminId,
       role,
       offset,
       limit,
+      filters
     });
 
     const result = await safityVideo.aggregate(aggregation);
@@ -634,6 +634,17 @@ const gateAggregationSaftyVideo = async ({
     },
   });
 
+  if (filters?.locationName) {
+    aggregation.push({
+      $match: {
+        "locationInfo.name": {
+          $regex: filters.locationName,
+          $options: "i",
+        },
+      },
+    });
+  }
+
   if (role !== "admin") {
     aggregation.push({
       $lookup: {
@@ -648,6 +659,16 @@ const gateAggregationSaftyVideo = async ({
       $unwind: {
         path: "$adminInfo",
         preserveNullAndEmptyArrays: true,
+      },
+    });
+  }
+
+  if (filters?.adminName) {
+    aggregation.push({
+      $match: {
+        ...(role === "superAdmin"
+          ? { "adminsData.name": { $regex: filters.adminName, $options: "i" } }
+          : { "adminInfo.name": { $regex: filters.adminName, $options: "i" } }),
       },
     });
   }
@@ -687,9 +708,8 @@ const toggleSaftyVideoStatus = async (req, res) => {
     await video.save();
 
     res.status(200).json({
-      message: `Video status updated to ${
-        video.isActive ? "Active" : "Inactive"
-      }`,
+      message: `Video status updated to ${video.isActive ? "Active" : "Inactive"
+        }`,
       isActive: video.isActive,
     });
   } catch (error) {
