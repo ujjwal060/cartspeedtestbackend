@@ -54,7 +54,7 @@ const refreshToken = async (req, res) => {
         const newAccessToken = jwt.sign(
             { userid: user.id, email: user.email, mobile: user.mobile },
             config.ACCESS_TOKEN_SECRET,
-            { expiresIn: "2m" }
+            { expiresIn: "1d" }
         );
 
         logger.info(`New access token generated for User ID: ${user.id}`);

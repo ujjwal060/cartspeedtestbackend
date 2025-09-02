@@ -232,13 +232,13 @@ const loginUser = async (req, res) => {
         const accessToken = jwt.sign(
             { userid: user._id },
             config.ACCESS_TOKEN_SECRET,
-            { expiresIn: "2m" }
+            { expiresIn: "1d" }
         );
 
         const refreshToken = jwt.sign(
             { userId: user._id },
             config.REFRESH_TOKEN_SECRET,
-            { expiresIn: "5m" }
+            { expiresIn: "30d" }
         );
 
         user.refreshToken = refreshToken;
