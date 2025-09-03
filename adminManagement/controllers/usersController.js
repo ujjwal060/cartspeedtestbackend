@@ -232,8 +232,35 @@ const findUserByAdminLocation = async (req, res) => {
     }
 };
 
+const getLatestUsers = async (req, res) => {
+  try {
+    const latestUsers = await userModel
+      .find({}, { name: 1, address: 1, createdAt: 1 })
+      .sort({ createdAt: -1 })
+      .limit(5);
+
+    const totalUsers = await userModel.countDocuments();
+
+    return res.status(200).json({
+      status: 200,
+      message: ['Latest users fetched successfully.'],
+      data: latestUsers,
+      total: totalUsers
+    });
+
+  } catch (error) {
+    logger.error(`admin-getLatestUsers Error`, error.message);
+    return res.status(500).json({
+      status: 500,
+      message: [error.message],
+    });
+  }
+};
+
+
 export {
     getAllUsers,
     deleteUser,
-    findUserByAdminLocation
+    findUserByAdminLocation,
+    getLatestUsers
 }
