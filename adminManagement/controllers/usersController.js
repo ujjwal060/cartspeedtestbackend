@@ -2,6 +2,7 @@ import userModel from "../../models/userModel.js";
 import userlocation from "../../models/userLocationMap.js";
 import userTestAttempt from "../../models/userTestModel.js";
 import certificate from "../../models/CertificateModel.js";
+import AdminModel from "../../models/adminModel.js";
 import { logger } from "../../utils/logger.js";
 
 const getAllUsers = async (req, res) => {
@@ -149,7 +150,90 @@ const deleteUser = async (req, res) => {
     }
 };
 
+const findUserByAdminLocation = async (req, res) => {
+    try {
+        const adminId = req.user.id;
+        const admin = await AdminModel.findById(adminId);
+        if (!admin) {
+            return res.status(404).json({
+                status: 404,
+                message: ["Admin not found"],
+            });
+        }
+
+        const locationId = admin.location;
+
+        const certificates = await certificate.aggregate([
+            {
+                $match: {
+                    locationId: locationId,
+                },
+            },
+            {
+                $group: {
+                    _id: {
+                        year: { $year: "$issueDate" },
+                        month: { $month: "$issueDate" },
+                    },
+                    totalCertificates: { $sum: 1 },
+                },
+            },
+            {
+                $sort: { "_id.year": 1, "_id.month": 1 },
+            },
+        ]);
+
+        const monthNames = [
+            "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+        ];
+
+        if (!certificates.length) {
+            return res.status(200).json({ status: 200, data: [] });
+        }
+
+        const years = certificates.map(c => c._id.year);
+        const minYear = Math.min(...years);
+        const maxYear = Math.max(...years);
+
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1;
+
+        let filledData = [];
+
+        for (let year = minYear; year <= maxYear; year++) {
+            const lastMonth = (year === currentYear) ? currentMonth : 12;
+
+            for (let month = 1; month <= lastMonth; month++) {
+                const found = certificates.find(
+                    c => c._id.year === year && c._id.month === month
+                );
+                filledData.push({
+                    label: `${monthNames[month - 1]}`,
+                    year,
+                    month,
+                    totalCertificates: found ? found.totalCertificates : 0
+                });
+            }
+        }
+
+        return res.status(200).json({
+            status: 200,
+            data: filledData
+        });
+
+    } catch (error) {
+        logger.error(`admin-findUserByAdminLocation Error`, error.message);
+        return res.status(500).json({
+            status: 500,
+            message: [error.message],
+        });
+    }
+};
+
 export {
     getAllUsers,
-    deleteUser
+    deleteUser,
+    findUserByAdminLocation
 }
