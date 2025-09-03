@@ -1,21 +1,18 @@
 pipeline {
     agent any
- 
     environment {
-         IMAGE_NAME = "docker.io/kartikeytiwari/cart-backend"
+        IMAGE_NAME = "docker.io/kartikeytiwari/cart-backend"
         IMAGE_TAG = "${BUILD_NUMBER}"
         CONTAINER_PORT = "9090"
         HOST_PORT = "9090"
         CONTAINER_NAME = "${JOB_BASE_NAME}-container"
     }
- 
     stages {
         stage('Checkout Code') {
             steps {
                 checkout scm
             }
         }
- 
         stage('Login to Docker Hub') {
             steps {
                 script {
@@ -32,7 +29,6 @@ pipeline {
                 }
             }
         }
- 
         stage('Generate Next Image Tag') {
             steps {
                 script {
@@ -40,7 +36,6 @@ pipeline {
                 }
             }
         }
- 
         stage('Build Docker Image') {
             steps {
                 sh '''
@@ -48,7 +43,6 @@ pipeline {
                 '''
             }
         }
- 
         stage('Tag Docker Image') {
             steps {
                 sh '''
@@ -56,16 +50,27 @@ pipeline {
                 '''
             }
         }
- 
         stage('Push Docker Image to Docker Hub') {
             steps {
-                sh '''
-                    docker push $IMAGE_NAME:$IMAGE_TAG
-                    docker push $IMAGE_NAME:latest
-                '''
+                script {
+                    // Retry push up to 3 times in case Docker Hub is flaky
+                    retry(3) {
+                        sh '''
+                            docker push $IMAGE_NAME:$IMAGE_TAG
+                        '''
+                    }
+ 
+                    // Push latest but don't fail the pipeline if it errors
+                    catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                        retry(2) {
+                            sh '''
+                                docker push $IMAGE_NAME:latest
+                            '''
+                        }
+                    }
+                }
             }
         }
- 
         stage('Stop Existing Container') {
             steps {
                 sh '''
@@ -74,7 +79,6 @@ pipeline {
                 '''
             }
         }
- 
         stage('Run New Docker Container') {
             steps {
                 sh '''
@@ -86,7 +90,6 @@ pipeline {
             }
         }
     }
- 
     post {
         always {
             script {
