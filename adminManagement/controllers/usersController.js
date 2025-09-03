@@ -4,117 +4,137 @@ import userTestAttempt from "../../models/userTestModel.js";
 import certificate from "../../models/CertificateModel.js";
 import AdminModel from "../../models/adminModel.js";
 import { logger } from "../../utils/logger.js";
+import mongoose from "mongoose";
+const ObjectId = mongoose.Types.ObjectId;
 
 const getAllUsers = async (req, res) => {
-    try {
-        const { filters, sortField, sortBy, offset, limit } = req.body;
-        const parsedOffset = parseInt(offset);
-        const parsedLimit = parseInt(limit);
-        let aggregation = [];
+  try {
+    const { filters, sortField, sortBy, offset, limit } = req.body;
+    const parsedOffset = parseInt(offset) || 0;
+    const parsedLimit = parseInt(limit) || 10;
 
-        if (filters?.name) {
-            aggregation.push({
-                $match: {
-                    name: {
-                        $regex: filters?.name,
-                        $options: 'i'
-                    }
-                }
-            })
-        };
+    const role = req.user.role;
+    const userId = req.user.id;
 
-        if (filters?.email) {
-            aggregation.push({
-                $match: {
-                    email: filters?.email
-                }
-            })
-        };
+    let aggregation = [];
 
-        if (filters?.mobile) {
-            aggregation.push({
-                $match: {
-                    mobile: filters?.mobile
-                }
-            })
-        };
-        // if (filters?.address) {
-        //     aggregation.push({
-        //         $match: {
-        //             address: filters?.address
-        //         }
-        //     })
-        // };
-
-        if (filters?.address) {
-            const escapedAddress = filters.address.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-            aggregation.push({
-                $match: {
-                    address: {
-                        $regex: escapedAddress,
-                        $options: "i",
-                    },
-                },
-            });
-        }
-
-        if (filters?.startDate || filters?.endDate) {
-            const dateRange = {};
-
-            if (filters.startDate) {
-                dateRange.$gte = new Date(new Date(filters.startDate).setHours(0, 0, 0, 0));
-            }
-
-            if (filters.endDate) {
-                dateRange.$lte = new Date(new Date(filters.endDate).setHours(23, 59, 59, 999));
-            }
-
-            aggregation.push({
-                $match: {
-                    createdAt: dateRange
-                }
-            });
-        }
-
-        if (sortField) {
-            aggregation.push({
-                $sort: {
-                    [sortField]: parseInt(sortBy) === 1 ? 1 : -1
-                }
-            });
-        }
-
-        aggregation.push({
-            $facet: {
-                data: [
-                    { $skip: parsedOffset },
-                    { $limit: parsedLimit }
-                ],
-                totalCount: [
-                    { $count: 'count' }
-                ]
-            }
-        });
-
-        const [result] = await userModel.aggregate(aggregation);
-        const total = result.totalCount[0]?.count || 0;
-        logger.info(`admin-Fetched-users ${result.data.length} users`);
-
+    if (role === "admin") {
+      // admin ka location nikalna
+      const adminData = await AdminModel.findById(userId);
+      if (!adminData || !adminData.location) {
         return res.status(200).json({
-            status: 200,
-            message: ['Videos fetched successfully.'],
-            data: result.data,
-            total
+          status: 200,
+          message: ["No location assigned to this admin"],
+          data: [],
+          total: 0
         });
+      }
 
-    } catch (error) {
-        logger.error(`admin-getAll users Error`, error.message);
-        return res.status(500).json({
-            status: 500,
-            message: [error.message],
-        });
+      // certificate se filter lagाना h userId के आधार पर
+      aggregation.push({
+        $lookup: {
+          from: "certificates",
+          localField: "_id",
+          foreignField: "userId",
+          as: "certificates"
+        }
+      });
+
+      aggregation.push({ $unwind: "$certificates" });
+
+      aggregation.push({
+        $match: {
+          "certificates.locationId": new ObjectId(adminData.location)
+        }
+      });
     }
-}
+
+    // filters
+    if (filters?.name) {
+      aggregation.push({
+        $match: {
+          name: { $regex: filters?.name, $options: "i" }
+        }
+      });
+    }
+
+    if (filters?.email) {
+      aggregation.push({ $match: { email: filters?.email } });
+    }
+
+    if (filters?.mobile) {
+      aggregation.push({ $match: { mobile: filters?.mobile } });
+    }
+
+    if (filters?.address) {
+      const escapedAddress = filters.address.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      aggregation.push({
+        $match: {
+          address: { $regex: escapedAddress, $options: "i" }
+        }
+      });
+    }
+
+    if (filters?.startDate || filters?.endDate) {
+      const dateRange = {};
+      if (filters.startDate) {
+        dateRange.$gte = new Date(new Date(filters.startDate).setHours(0, 0, 0, 0));
+      }
+      if (filters.endDate) {
+        dateRange.$lte = new Date(new Date(filters.endDate).setHours(23, 59, 59, 999));
+      }
+      aggregation.push({ $match: { createdAt: dateRange } });
+    }
+
+    // sorting
+    if (sortField) {
+      aggregation.push({
+        $sort: { [sortField]: parseInt(sortBy) === 1 ? 1 : -1 }
+      });
+    } else {
+      aggregation.push({ $sort: { createdAt: -1 } });
+    }
+
+    // ✅ सिर्फ जरूरी fields
+    aggregation.push({
+      $project: {
+        _id: 0,
+        name: 1,
+        email: 1,
+        phone: "$mobile",
+        address: 1,
+        date: "$createdAt"
+      }
+    });
+
+    // pagination + total
+    aggregation.push({
+      $facet: {
+        data: [{ $skip: parsedOffset }, { $limit: parsedLimit }],
+        totalCount: [{ $count: "count" }]
+      }
+    });
+
+    const [result] = await userModel.aggregate(aggregation);
+    const total = result.totalCount[0]?.count || 0;
+
+    logger.info(`admin-Fetched-users ${result.data.length} users`);
+
+    return res.status(200).json({
+      status: 200,
+      message: ["Users fetched successfully."],
+      data: result.data,
+      total
+    });
+  } catch (error) {
+    logger.error(`admin-getAll users Error`, error.message);
+    return res.status(500).json({
+      status: 500,
+      message: [error.message]
+    });
+  }
+};
+
 
 const deleteUser = async (req, res) => {
     try {
@@ -233,28 +253,28 @@ const findUserByAdminLocation = async (req, res) => {
 };
 
 const getLatestUsers = async (req, res) => {
-  try {
-    const latestUsers = await userModel
-      .find({}, { name: 1, address: 1, createdAt: 1 })
-      .sort({ createdAt: -1 })
-      .limit(5);
+    try {
+        const latestUsers = await userModel
+            .find({}, { name: 1, address: 1, createdAt: 1 })
+            .sort({ createdAt: -1 })
+            .limit(5);
 
-    const totalUsers = await userModel.countDocuments();
+        const totalUsers = await userModel.countDocuments();
 
-    return res.status(200).json({
-      status: 200,
-      message: ['Latest users fetched successfully.'],
-      data: latestUsers,
-      total: totalUsers
-    });
+        return res.status(200).json({
+            status: 200,
+            message: ['Latest users fetched successfully.'],
+            data: latestUsers,
+            total: totalUsers
+        });
 
-  } catch (error) {
-    logger.error(`admin-getLatestUsers Error`, error.message);
-    return res.status(500).json({
-      status: 500,
-      message: [error.message],
-    });
-  }
+    } catch (error) {
+        logger.error(`admin-getLatestUsers Error`, error.message);
+        return res.status(500).json({
+            status: 500,
+            message: [error.message],
+        });
+    }
 };
 
 export {
