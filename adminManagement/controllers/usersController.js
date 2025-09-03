@@ -93,7 +93,7 @@ const getAllUsers = async (req, res) => {
 
     aggregation.push({
       $project: {
-        _id: 0,
+        _id: 1,
         name: 1,
         email: 1,
         mobile: "$mobile",
