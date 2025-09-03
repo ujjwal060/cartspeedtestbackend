@@ -14,6 +14,7 @@ import { getNextCertificateNumber } from "../../utils/getNextCertificateNumber.j
 const getAssesmentForUser = async (req, res) => {
   try {
     const userId = req.user.userId;
+    let isSuperAdmin = false;
 
     const userLocationData = await userLocationModel.findOne({
       userId: new ObjectId(userId),
@@ -36,21 +37,21 @@ const getAssesmentForUser = async (req, res) => {
     let selectedLocationId;
     let locationRole = "superAdmin";
 
-     if (nearbyLocations) {
-          selectedLocationId = nearbyLocations._id;
-          locationRole = "admin";
-        } else {
-          const superAdminLocation = await LocationModel.findOne({ role: "superAdmin" });
-          if (!superAdminLocation) {
-            return res.status(404).json({
-              status: 404,
-              message: ["SuperAdmin location not found"],
-            });
-          }
-          selectedLocationId = superAdminLocation._id;
-        }
+    if (nearbyLocations) {
+      selectedLocationId = nearbyLocations._id;
+      locationRole = "admin";
+    } else {
+      const superAdminLocation = await LocationModel.findOne({ role: "superAdmin" });
+      if (!superAdminLocation) {
+        return res.status(404).json({
+          status: 404,
+          message: ["SuperAdmin location not found"],
+        });
+      }
+      selectedLocationId = superAdminLocation._id;
+    }
 
-   const existingTest = await UserTestAttempts.findOne({
+    const existingTest = await UserTestAttempts.findOne({
       userId,
       locationId: selectedLocationId,
       // isSectionCompleted: true,
@@ -66,13 +67,13 @@ const getAssesmentForUser = async (req, res) => {
       }
     }
 
-     let questions = await QuestionModel.find({
+    let questions = await QuestionModel.find({
       locationId: selectedLocationId,
     })
       .limit(10)
       .lean();
 
-      if (questions.length === 0 && locationRole === "admin") {
+    if (questions.length === 0 && locationRole === "admin") {
       const superAdminLocation = await LocationModel.findOne({ role: "superAdmin" });
       selectedLocationId = superAdminLocation._id;
 
@@ -95,7 +96,7 @@ const getAssesmentForUser = async (req, res) => {
       })),
     }));
 
-     return res.status(200).json({
+    return res.status(200).json({
       status: 200,
       message: [`${locationRole} questions fetched successfully`],
       data: [
@@ -213,7 +214,7 @@ const submitTestAttempt = async (req, res) => {
 
     await userTest.save();
 
-   let passedAttemptDetails = [];
+    let passedAttemptDetails = [];
     if (isPassed) {
       const populated = await UserTestAttempts.findOne({ userId, locationId })
         .populate('attempts.questions.questionId', 'question options')
