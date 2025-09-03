@@ -228,4 +228,78 @@ const getAllCertificateAdmin = async (req, res) => {
     }
 };
 
-export { getAllCertificateAdmin };
+const getLatestCertificates = async (req, res) => {
+  try {
+    const adminId = req.user.id;
+    const role = req.user.role;
+
+    let matchAdminStage = {};
+
+    if (role === 'admin') {
+      const adminData = await adminModel.findById(adminId);
+      if (!adminData || !adminData.location) {
+        return res.status(200).json({
+          status: 200,
+          message: ["No location assigned to this admin"],
+          data: []
+        });
+      }
+
+      matchAdminStage = {
+        locationId: new ObjectId(adminData.location)
+      };
+    }
+
+    let aggregation = [];
+
+    if (Object.keys(matchAdminStage).length > 0) {
+      aggregation.push({ $match: matchAdminStage });
+    }
+
+    aggregation.push({
+      $lookup: {
+        from: 'users',
+        localField: 'userId',
+        foreignField: '_id',
+        as: 'userData'
+      }
+    });
+
+    aggregation.push({
+      $unwind: {
+        path: '$userData',
+        preserveNullAndEmptyArrays: true
+      }
+    });
+
+    aggregation.push({ $sort: { issueDate: -1 } });
+    aggregation.push({ $limit: 5 });
+
+    aggregation.push({
+      $project: {
+        _id: 0,
+        userName: '$userData.name',
+        certificateNumber: 1,
+        date: '$issueDate'
+      }
+    });
+
+    const certificates = await CertificateModel.aggregate(aggregation);
+
+    return res.status(200).json({
+      status: 200,
+      message: ["Latest certificates fetched successfully"],
+      data: certificates
+    });
+
+  } catch (error) {
+    logger.error("Error in getLatestCertificates", error);
+    return res.status(500).json({
+      status: 500,
+      message: [error.message],
+    });
+  }
+};
+
+
+export { getAllCertificateAdmin, getLatestCertificates };

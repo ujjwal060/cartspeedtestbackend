@@ -257,7 +257,6 @@ const getLatestUsers = async (req, res) => {
   }
 };
 
-
 export {
     getAllUsers,
     deleteUser,
