@@ -21,7 +21,7 @@ const sendEmail = async ({ email, subject, body }) => {
         });
 
         const mailOptions = {
-            from:  `"Cartie App" <${config.EMAIL_USER}>`,
+            from: config.EMAIL_USER,
             to: email,
             subject: subject,
             text: body
