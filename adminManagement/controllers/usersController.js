@@ -19,7 +19,6 @@ const getAllUsers = async (req, res) => {
     let aggregation = [];
 
     if (role === "admin") {
-      // admin ka location nikalna
       const adminData = await AdminModel.findById(userId);
       if (!adminData || !adminData.location) {
         return res.status(200).json({
@@ -30,7 +29,6 @@ const getAllUsers = async (req, res) => {
         });
       }
 
-      // certificate se filter lagाना h userId के आधार पर
       aggregation.push({
         $lookup: {
           from: "certificates",
@@ -49,7 +47,6 @@ const getAllUsers = async (req, res) => {
       });
     }
 
-    // filters
     if (filters?.name) {
       aggregation.push({
         $match: {
@@ -86,7 +83,6 @@ const getAllUsers = async (req, res) => {
       aggregation.push({ $match: { createdAt: dateRange } });
     }
 
-    // sorting
     if (sortField) {
       aggregation.push({
         $sort: { [sortField]: parseInt(sortBy) === 1 ? 1 : -1 }
@@ -95,19 +91,17 @@ const getAllUsers = async (req, res) => {
       aggregation.push({ $sort: { createdAt: -1 } });
     }
 
-    // ✅ सिर्फ जरूरी fields
     aggregation.push({
       $project: {
         _id: 0,
         name: 1,
         email: 1,
-        phone: "$mobile",
+        mobile: "$mobile",
         address: 1,
         date: "$createdAt"
       }
     });
 
-    // pagination + total
     aggregation.push({
       $facet: {
         data: [{ $skip: parsedOffset }, { $limit: parsedLimit }],
