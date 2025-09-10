@@ -92,60 +92,64 @@ const getGLSVRules = async (req, res) => {
   try {
     const adminId = req.user.id;
     const role = req.user.role;
-    const { offset, limit } = req.body;
+    const { offset = 0, limit = 10 } = req.body;
     const parsedOffset = parseInt(offset);
     const parsedLimit = parseInt(limit);
     let aggregation = [];
 
-    if (role == "admin") {
+    if (role === "admin") {
       aggregation.push({
-        $match: {
-          adminId: new mongoose.Types.ObjectId(adminId),
-        },
+        $match: { adminId: new mongoose.Types.ObjectId(adminId) },
       });
     }
 
-    aggregation.push({
-      $lookup: {
-        from: "locations",
-        localField: "locationId",
-        foreignField: "_id",
-        as: "location",
+    aggregation.push(
+      {
+        $lookup: {
+          from: "locations",
+          localField: "locationId",
+          foreignField: "_id",
+          as: "location",
+        },
       },
-    });
-
-    aggregation.push({
-      $unwind: { path: "$location", preserveNullAndEmptyArrays: true },
-    });
-
-    aggregation.push({
-      $project: {
-        _id: 1,
-        ruleName: 1,
-        description: 1,
-        locationId: "$location._id",
-        locationName: "$location.name",
-        questions: 1,
-        sections: 1,
-        guidelines: 1,
-        createdAt: 1,
-        updatedAt: 1,
+      {
+        $unwind: { path: "$location", preserveNullAndEmptyArrays: true },
       },
-    });
-
-    aggregation.push({
-      $facet: {
-        data: [{ $skip: parsedOffset }, { $limit: parsedLimit }],
-        totalCount: [{ $count: "count" }],
+      {
+        $project: {
+          _id: 1,
+          adminId: 1,
+          isSuperAdmin: 1,
+          locationId: "$location._id",
+          locationName: "$location.name",
+          whatIsLSV: 1,
+          importance: 1,
+          safety: 1,
+          createdAt: 1,
+        },
       },
-    });
+      {
+        $facet: {
+          data: [{ $skip: parsedOffset }, { $limit: parsedLimit }],
+          totalCount: [{ $count: "count" }],
+        },
+      }
+    );
 
     const [rules] = await goodLSVRulesModel.aggregate(aggregation);
     const total = rules.totalCount[0]?.count || 0;
+
+     const formattedData = rules.data.map(rule => ({
+      ...rule,
+      whatIsLSV: Array.isArray(rule.whatIsLSV) ? rule.whatIsLSV[0] || {} : rule.whatIsLSV,
+      importance: Array.isArray(rule.importance) ? rule.importance[0] || {} : rule.importance,
+      safety: Array.isArray(rule.safety) ? rule.safety[0] || {} : rule.safety,
+    }));
+
     return res.status(200).json({
       status: 200,
       message: "LSV Rules fetched successfully",
-      data: rules.data,
+      data: formattedData,
       total,
     });
   } catch (error) {
