@@ -1,51 +1,18 @@
 import mongoose from "mongoose";
 
-const questionSchema = new mongoose.Schema({
-  whatIsLSV: {
-    type: String,
-    required: true,
-  },
-  importance: {
-    type: String,
-    required: true,
-  },
-  safety: {
-    type: String,
-    required: true,
-  },
-});
-
 const guidelineSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true,
-  },
-  description: {
-    type: String,
-    required: true,
-  },
-  imageUrl: {
-    type: String,
-    required: true,
-  },
+  title: { type: String, required: true },
+  description: { type: String, required: true },
+  imageUrl: { type: String, required: false },
 });
 
 const sectionSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true,
-  },
-  description: {
-    type: String,
-    required: true,
-  },
-  isActive: {
-    type: Boolean,
-    default: true,
-  },
+  title: { type: String, required: true },
+  description: { type: String, required: true },
+  guidelines: [guidelineSchema]
 });
 
-const rulesAndRegulationSchema = new mongoose.Schema({
+const goodLSVRulesSchema = new mongoose.Schema({
   isSuperAdmin: {
     type: Boolean,
     default: false,
@@ -60,13 +27,13 @@ const rulesAndRegulationSchema = new mongoose.Schema({
     ref: "Admin",
     required: true,
   },
-  questions: questionSchema,
-  sections: [sectionSchema],
-  guidelines: [guidelineSchema],
+  whatIsLSV: [sectionSchema],
+  importance: [sectionSchema],
+  safety: [sectionSchema],
   createdAt: {
     type: Date,
     default: Date.now,
   },
 });
 
-export default mongoose.model("GLSVRule", rulesAndRegulationSchema);
+export default mongoose.model("GLSVRule", goodLSVRulesSchema);

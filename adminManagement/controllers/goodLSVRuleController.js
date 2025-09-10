@@ -8,11 +8,11 @@ const createLSVRule = async (req, res) => {
   try {
     const adminId = req.user.id;
     const role = req.user.role;
-    let questions, sections, guidelines;
+    let whatIsLSV, importance, safety;
     try {
-      questions = JSON.parse(req.body.questions);
-      sections = JSON.parse(req.body.sections);
-      guidelines = JSON.parse(req.body.guidelines);
+      whatIsLSV = JSON.parse(req.body.whatIsLSV || "[]");
+      importance = JSON.parse(req.body.importance || "[]");
+      safety = JSON.parse(req.body.safety || "[]");
     } catch (parseError) {
       return res.status(400).json({
         status: 400,
@@ -20,7 +20,7 @@ const createLSVRule = async (req, res) => {
       });
     }
 
-    if (!adminId || !questions || !sections) {
+    if (!adminId || (!whatIsLSV.length && !importance.length && !safety.length)) {
       return res.status(400).json({
         status: 400,
         message: ["All required fields must be provided."],
@@ -42,19 +42,33 @@ const createLSVRule = async (req, res) => {
     }
     let locationId = location.location;
 
-    const processedGuidelines = guidelines.map((guideline, index) => {
-      return {
-        ...guideline,
-        imageUrl: req.fileLocations?.[index] || null,
-      };
-    });
+    let fileIndex = 0;
+    const processSection = (sections, files) => {
+      if (!Array.isArray(sections)) return [];
+      const isFilesArray = Array.isArray(files);
+      return sections.map((section) => ({
+        title: section.title,
+        description: section.description,
+        guidelines: (section.guidelines || []).map((guideline) => {
+          let assignedImageUrl = guideline.imageUrl || null;
+          if (isFilesArray && files[fileIndex]) {
+            assignedImageUrl = files[fileIndex];
+            fileIndex += 1;
+          }
+          return {
+            ...guideline,
+            imageUrl: assignedImageUrl,
+          };
+        }),
+      }));
+    };
 
     const newRule = new goodLSVRulesModel({
       locationId,
       adminId,
-      questions,
-      sections,
-      guidelines: processedGuidelines,
+      whatIsLSV: processSection(whatIsLSV, req.fileLocations),
+      importance: processSection(importance, req.fileLocations),
+      safety: processSection(safety, req.fileLocations),
       isSuperAdmin,
     });
 
@@ -63,6 +77,7 @@ const createLSVRule = async (req, res) => {
     return res.status(201).json({
       status: 201,
       message: ["LSV Rule created successfully."],
+      data: savedRule
     });
   } catch (error) {
     logger.error("admin-createGLSV Error:", error);
