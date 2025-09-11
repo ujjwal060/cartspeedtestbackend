@@ -67,10 +67,25 @@ const getGLSVRule = async (req, res) => {
       });
     }
 
+    const formattedData = lsvRules.map(rule => {
+      const cleanedRule = {
+        ...rule,
+        whatIsLSV: Array.isArray(rule.whatIsLSV) && rule.whatIsLSV.length ? rule.whatIsLSV[0] : undefined,
+        importance: Array.isArray(rule.importance) && rule.importance.length ? rule.importance[0] : undefined,
+        safety: Array.isArray(rule.safety) && rule.safety.length ? rule.safety[0] : undefined,
+      };
+
+      Object.keys(cleanedRule).forEach(key => {
+        if (cleanedRule[key] === undefined) delete cleanedRule[key];
+      });
+
+      return cleanedRule;
+    });
+
     return res.json({
       status: 200,
       message: ["Successfully found LSV rules for nearby locations"],
-      data: lsvRules[0],
+      data: formattedData[0],
     });
   } catch (error) {
     logger.error("Error in getGLSVRule:", error);
@@ -222,7 +237,7 @@ const getRRLSVRule = async (req, res) => {
       },
     });
 
-     let aggregation;
+    let aggregation;
     if (!nearbyLocations) {
       // Location not found, get isSuperAdmin: true LSV rules
       aggregation = [
@@ -257,10 +272,25 @@ const getRRLSVRule = async (req, res) => {
       });
     }
 
+    const formattedData = lsvRules.map(rule => {
+      const cleanedRule = {
+        ...rule,
+        cartingRule: Array.isArray(rule.cartingRule) ? rule.cartingRule[0] || {} : rule.cartingRule,
+        tips: Array.isArray(rule.tips) ? rule.tips[0] || {} : rule.tips,
+        safety: Array.isArray(rule.safety) ? rule.safety[0] || {} : rule.safety,
+      };
+
+      Object.keys(cleanedRule).forEach(key => {
+        if (cleanedRule[key] === undefined) delete cleanedRule[key];
+      });
+
+      return cleanedRule;
+    });
+
     return res.json({
       status: 200,
       message: ["Successfully found LSV rules for nearby locations"],
-      data: lsvRules[0],
+      data: formattedData[0],
     });
   } catch (error) {
     logger.error("Error in getGLSVRule:", error);
