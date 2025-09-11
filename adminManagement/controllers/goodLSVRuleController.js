@@ -43,24 +43,31 @@ const createLSVRule = async (req, res) => {
     let locationId = location.location;
 
     let fileIndex = 0;
+
     const processSection = (sections, files) => {
       if (!Array.isArray(sections)) return [];
       const isFilesArray = Array.isArray(files);
-      return sections.map((section) => ({
-        title: section.title,
-        description: section.description,
-        guidelines: (section.guidelines || []).map((guideline) => {
+
+      return sections.map((section) => {
+        const processedGuidelines = (section.guidelines || []).map((guideline) => {
           let assignedImageUrl = guideline.imageUrl || null;
+
           if (isFilesArray && files[fileIndex]) {
             assignedImageUrl = files[fileIndex];
-            fileIndex += 1;
           }
+          fileIndex += 1;
+
           return {
             ...guideline,
             imageUrl: assignedImageUrl,
           };
-        }),
-      }));
+        });
+
+        return {
+          ...section,
+          guidelines: processedGuidelines,
+        };
+      });
     };
 
     const newRule = new goodLSVRulesModel({
@@ -227,24 +234,40 @@ const createRRLSV = async (req, res) => {
     }
     let locationId = location.location;
 
-    const processSections = (sections, fileLocations = []) => {
-      return sections.map((section, idx) => ({
-        ...section,
-        guidelines: (section.guidelines || []).map((g, gIdx) => ({
-          ...g,
-          imageUrl: fileLocations[gIdx] || g.imageUrl || null,
-        })),
-      }));
-    };
+    let fileIndex = 0;
+    const processSections = (sections, files = []) => {
+      if (!Array.isArray(sections)) return [];
+      const isFilesArray = Array.isArray(files);
 
+      return sections.map((section) => {
+        const processedGuidelines = (section.guidelines || []).map((guideline) => {
+          let assignedImageUrl = guideline.imageUrl || null;
+
+          if (isFilesArray && files[fileIndex]) {
+            assignedImageUrl = files[fileIndex];
+          }
+          fileIndex += 1;
+
+          return {
+            ...guideline,
+            imageUrl: assignedImageUrl,
+          };
+        });
+
+        return {
+          ...section,
+          guidelines: processedGuidelines,
+        };
+      });
+    };
 
     const newRule = new ruleRagulationLSVModel({
       locationId,
       adminId,
       isSuperAdmin,
-      cartingRule: processSections(cartingRule, req.fileLocations || []),
-      tips: processSections(tips, req.fileLocations || []),
-      safety: processSections(safety, req.fileLocations || []),
+      cartingRule: processSections(cartingRule, req.fileLocations),
+      tips: processSections(tips, req.fileLocations),
+      safety: processSections(safety, req.fileLocations),
     });
 
     const savedRule = await newRule.save();
@@ -300,9 +323,9 @@ const getRRLSVRules = async (req, res) => {
         description: 1,
         locationId: "$location._id",
         locationName: "$location.name",
-        questions: 1,
-        sections: 1,
-        guidelines: 1,
+        cartingRule: 1,
+        tips: 1,
+        safety: 1,
         createdAt: 1,
         updatedAt: 1,
       },
@@ -317,10 +340,18 @@ const getRRLSVRules = async (req, res) => {
 
     const [rules] = await ruleRagulationLSVModel.aggregate(aggregation);
     const total = rules.totalCount[0]?.count || 0;
+
+    const formattedData = rules.data.map(rule => ({
+      ...rule,
+      cartingRule: Array.isArray(rule.cartingRule) ? rule.cartingRule[0] || {} : rule.cartingRule,
+      tips: Array.isArray(rule.tips) ? rule.tips[0] || {} : rule.tips,
+      safety: Array.isArray(rule.safety) ? rule.safety[0] || {} : rule.safety,
+    }));
+
     return res.status(200).json({
       status: 200,
       message: "RRLSV Rules fetched successfully",
-      data: rules.data,
+      data: formattedData,
       total,
     });
   } catch (error) {
