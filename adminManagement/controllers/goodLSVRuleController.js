@@ -139,7 +139,7 @@ const getGLSVRules = async (req, res) => {
     const [rules] = await goodLSVRulesModel.aggregate(aggregation);
     const total = rules.totalCount[0]?.count || 0;
 
-     const formattedData = rules.data.map(rule => ({
+    const formattedData = rules.data.map(rule => ({
       ...rule,
       whatIsLSV: Array.isArray(rule.whatIsLSV) ? rule.whatIsLSV[0] || {} : rule.whatIsLSV,
       importance: Array.isArray(rule.importance) ? rule.importance[0] || {} : rule.importance,
@@ -193,12 +193,12 @@ const createRRLSV = async (req, res) => {
   try {
     const adminId = req.user.id;
     const role = req.user.role;
-    let questions, sections, guidelines;
+    let cartingRule, tips, safety;
 
     try {
-      questions = JSON.parse(req.body.questions);
-      sections = JSON.parse(req.body.sections);
-      guidelines = JSON.parse(req.body.guidelines);
+      cartingRule = JSON.parse(req.body.cartingRule || "[]");
+      tips = JSON.parse(req.body.tips || "[]");
+      safety = JSON.parse(req.body.safety || "[]");
     } catch (parseError) {
       return res.status(400).json({
         status: 400,
@@ -206,7 +206,7 @@ const createRRLSV = async (req, res) => {
       });
     }
 
-    if (!adminId || !questions || !sections) {
+    if (!adminId || (!cartingRule.length && !tips.length && !safety.length)) {
       return res
         .status(400)
         .json({ message: "All required fields must be provided." });
@@ -227,26 +227,32 @@ const createRRLSV = async (req, res) => {
     }
     let locationId = location.location;
 
-    const processedGuidelines = guidelines.map((guideline, index) => {
-      return {
-        ...guideline,
-        imageUrl: req.fileLocations?.[index] || null,
-      };
-    });
+    const processSections = (sections, fileLocations = []) => {
+      return sections.map((section, idx) => ({
+        ...section,
+        guidelines: (section.guidelines || []).map((g, gIdx) => ({
+          ...g,
+          imageUrl: fileLocations[gIdx] || g.imageUrl || null,
+        })),
+      }));
+    };
+
 
     const newRule = new ruleRagulationLSVModel({
       locationId,
       adminId,
-      questions,
-      sections,
-      guidelines: processedGuidelines,
-      isSuperAdmin
+      isSuperAdmin,
+      cartingRule: processSections(cartingRule, req.fileLocations || []),
+      tips: processSections(tips, req.fileLocations || []),
+      safety: processSections(safety, req.fileLocations || []),
     });
+
     const savedRule = await newRule.save();
 
     res.status(201).json({
       status: 201,
       message: "RRLSV Rule created successfully.",
+      data: savedRule
     });
   } catch (error) {
     logger.error(`admin-createGLSV Error`, error.message);
