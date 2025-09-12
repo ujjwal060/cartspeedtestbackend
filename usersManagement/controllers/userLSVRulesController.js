@@ -73,6 +73,7 @@ const getGLSVRule = async (req, res) => {
         whatIsLSV: Array.isArray(rule.whatIsLSV) && rule.whatIsLSV.length ? rule.whatIsLSV[0] : undefined,
         importance: Array.isArray(rule.importance) && rule.importance.length ? rule.importance[0] : undefined,
         safety: Array.isArray(rule.safety) && rule.safety.length ? rule.safety[0] : undefined,
+        cart: Array.isArray(rule.cart) && rule.cart.length ? rule.cart[0] : undefined,
       };
 
       Object.keys(cleanedRule).forEach(key => {
