@@ -8,11 +8,12 @@ const createLSVRule = async (req, res) => {
   try {
     const adminId = req.user.id;
     const role = req.user.role;
-    let whatIsLSV, importance, safety;
+    let whatIsLSV = [], importance = [], safety = [], cart = [];
     try {
       whatIsLSV = JSON.parse(req.body.whatIsLSV || "[]");
       importance = JSON.parse(req.body.importance || "[]");
       safety = JSON.parse(req.body.safety || "[]");
+      cart = JSON.parse(req.body.cart || "[]");
     } catch (parseError) {
       return res.status(400).json({
         status: 400,
@@ -20,7 +21,7 @@ const createLSVRule = async (req, res) => {
       });
     }
 
-    if (!adminId || (!whatIsLSV.length && !importance.length && !safety.length)) {
+    if (!adminId || (!whatIsLSV.length && !importance.length && !safety.length && !cart.length)) {
       return res.status(400).json({
         status: 400,
         message: ["All required fields must be provided."],
@@ -44,7 +45,43 @@ const createLSVRule = async (req, res) => {
 
     let fileIndex = 0;
 
-    const processSection = (sections, files) => {
+    // const processSection = (sections, files) => {
+    //   if (!Array.isArray(sections)) return [];
+    //   const isFilesArray = Array.isArray(files);
+
+    //   return sections.map((section) => {
+    //     const processedGuidelines = (section.guidelines || []).map((guideline) => {
+    //       let assignedImageUrl = guideline.imageUrl || null;
+
+    //       if (isFilesArray && files[fileIndex]) {
+    //         assignedImageUrl = files[fileIndex];
+    //       }
+    //       fileIndex += 1;
+
+    //       return {
+    //         ...guideline,
+    //         imageUrl: assignedImageUrl,
+    //       };
+    //     });
+
+    //     return {
+    //       ...section,
+    //       guidelines: processedGuidelines,
+    //     };
+    //   });
+    // };
+
+    // const newRule = new goodLSVRulesModel({
+    //   locationId,
+    //   adminId,
+    //   whatIsLSV: processSection(whatIsLSV, req.fileLocations),
+    //   importance: processSection(importance, req.fileLocations),
+    //   safety: processSection(safety, req.fileLocations),
+    //   cart: processSection(cart, req.fileLocations),
+    //   isSuperAdmin,
+    // });
+
+     const processSection = (sections, files) => {
       if (!Array.isArray(sections)) return [];
       const isFilesArray = Array.isArray(files);
 
@@ -76,9 +113,10 @@ const createLSVRule = async (req, res) => {
       whatIsLSV: processSection(whatIsLSV, req.fileLocations),
       importance: processSection(importance, req.fileLocations),
       safety: processSection(safety, req.fileLocations),
+      cart: processSection(cart, req.fileLocations),
       isSuperAdmin,
     });
-
+    
     const savedRule = await newRule.save();
 
     return res.status(201).json({

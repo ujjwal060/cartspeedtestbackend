@@ -6,9 +6,23 @@ const guidelineSchema = new mongoose.Schema({
   imageUrl: { type: String, required: true },
 });
 
-const sectionSchema = new mongoose.Schema({
+const whatIsLSVsectionSchema = new mongoose.Schema({
   title: { type: String, required: true },
-  description: { type: String, required: true },
+  guidelines: [guidelineSchema]
+});
+
+const importanceSectionSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  guidelines: [guidelineSchema]
+});
+
+const safetySectionSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  guidelines: [guidelineSchema]
+});
+
+const cartsectionSchema = new mongoose.Schema({
+  title: { type: String, required: true },
   guidelines: [guidelineSchema]
 });
 
@@ -27,9 +41,10 @@ const goodLSVRulesSchema = new mongoose.Schema({
     ref: "Admin",
     required: true,
   },
-  whatIsLSV: [sectionSchema],
-  importance: [sectionSchema],
-  safety: [sectionSchema],
+  whatIsLSV: [whatIsLSVsectionSchema],
+  importance: [importanceSectionSchema],
+  safety: [safetySectionSchema],
+  cart: [cartsectionSchema],
   createdAt: {
     type: Date,
     default: Date.now,
