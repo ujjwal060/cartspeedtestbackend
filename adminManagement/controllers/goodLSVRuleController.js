@@ -134,6 +134,7 @@ const getGLSVRules = async (req, res) => {
           whatIsLSV: 1,
           importance: 1,
           safety: 1,
+          cart: 1,
           createdAt: 1,
         },
       },
@@ -153,6 +154,7 @@ const getGLSVRules = async (req, res) => {
       whatIsLSV: Array.isArray(rule.whatIsLSV) ? rule.whatIsLSV[0] || {} : rule.whatIsLSV,
       importance: Array.isArray(rule.importance) ? rule.importance[0] || {} : rule.importance,
       safety: Array.isArray(rule.safety) ? rule.safety[0] || {} : rule.safety,
+      cart: Array.isArray(rule.cart) ? rule.cart[0] || {} : rule.cart,
     }));
 
     return res.status(200).json({
