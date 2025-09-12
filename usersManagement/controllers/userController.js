@@ -211,6 +211,32 @@ const loginUser = async (req, res) => {
             $or: [{ email }, { mobile }]
         });
 
+        if (user && !user.isVerified) {
+            const otp = generateOTP();
+            user.otp = otp;
+            user.otpExpire = new Date(Date.now() + 10 * 60 * 1000);
+            await user.save();
+
+            logger.info("Resending OTP for unverified user", { email, otp });
+
+            const { subject, body } = emailTamplates.otpVerification(user.name, otp);
+            const otpSent = await sendEmail({ email: user.email, subject, body });
+
+            if (!otpSent.success) {
+                logger.error("OTP resend failed", { mobile, error: otpSent.message });
+                return res.status(500).json({
+                    status: 500,
+                    message: [otpSent.message],
+                });
+            }
+
+            logger.info("OTP resent successfully", { mobile });
+            return res.status(200).json({
+                status: 200,
+                message: ['User already exists but not verified. OTP resent successfully.'],
+            });
+        }
+
         if (!user) {
             logger.warn("Login failed - User not found", { email, mobile });
             return res.status(404).json({

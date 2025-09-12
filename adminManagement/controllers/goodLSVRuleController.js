@@ -45,43 +45,7 @@ const createLSVRule = async (req, res) => {
 
     let fileIndex = 0;
 
-    // const processSection = (sections, files) => {
-    //   if (!Array.isArray(sections)) return [];
-    //   const isFilesArray = Array.isArray(files);
-
-    //   return sections.map((section) => {
-    //     const processedGuidelines = (section.guidelines || []).map((guideline) => {
-    //       let assignedImageUrl = guideline.imageUrl || null;
-
-    //       if (isFilesArray && files[fileIndex]) {
-    //         assignedImageUrl = files[fileIndex];
-    //       }
-    //       fileIndex += 1;
-
-    //       return {
-    //         ...guideline,
-    //         imageUrl: assignedImageUrl,
-    //       };
-    //     });
-
-    //     return {
-    //       ...section,
-    //       guidelines: processedGuidelines,
-    //     };
-    //   });
-    // };
-
-    // const newRule = new goodLSVRulesModel({
-    //   locationId,
-    //   adminId,
-    //   whatIsLSV: processSection(whatIsLSV, req.fileLocations),
-    //   importance: processSection(importance, req.fileLocations),
-    //   safety: processSection(safety, req.fileLocations),
-    //   cart: processSection(cart, req.fileLocations),
-    //   isSuperAdmin,
-    // });
-
-     const processSection = (sections, files) => {
+    const processSection = (sections, files) => {
       if (!Array.isArray(sections)) return [];
       const isFilesArray = Array.isArray(files);
 
@@ -116,7 +80,7 @@ const createLSVRule = async (req, res) => {
       cart: processSection(cart, req.fileLocations),
       isSuperAdmin,
     });
-    
+
     const savedRule = await newRule.save();
 
     return res.status(201).json({
