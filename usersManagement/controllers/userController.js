@@ -85,6 +85,7 @@ const registerUser = async (req, res) => {
                 return res.status(200).json({
                     status: 200,
                     message: ['User already exists but not verified. OTP resent successfully.'],
+                    data:[]
                 });
             }
         }
