@@ -285,7 +285,7 @@ const getRRLSVRule = async (req, res) => {
         { $sort: { createdAt: -1 } },
         { $limit: 1 },
       ];
-      lsvRules = await goodLSVRuleModel.aggregate(aggregation);
+      lsvRules = await ruleRagulationLSVModel.aggregate(aggregation);
     }
 
     logger.info("LSV rules found:", lsvRules.length);
