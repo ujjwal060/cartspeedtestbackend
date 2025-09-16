@@ -35,8 +35,8 @@ const getGLSVRule = async (req, res) => {
       },
     });
     let aggregation;
+
     if (!nearbyLocations) {
-      // Location not found, get isSuperAdmin: true LSV rules
       aggregation = [
         {
           $match: {
@@ -56,7 +56,19 @@ const getGLSVRule = async (req, res) => {
 
     // let aggregation = await filterAggregation(nearbyLocations);
 
-    const lsvRules = await goodLSVRuleModel.aggregate(aggregation);
+    let lsvRules = await goodLSVRuleModel.aggregate(aggregation);
+
+    if (
+      !lsvRules.length ||
+      (lsvRules[0].sections == null && lsvRules[0].guidelines == null)
+    ) {
+      aggregation = [
+        { $match: { isSuperAdmin: true } },
+        { $sort: { createdAt: -1 } },
+        { $limit: 1 },
+      ];
+      lsvRules = await goodLSVRuleModel.aggregate(aggregation);
+    }
 
     logger.info("LSV rules found:", lsvRules.length);
 
@@ -262,7 +274,19 @@ const getRRLSVRule = async (req, res) => {
 
     // let aggregation = await filterAggregationRRLSV(nearbyLocations);
 
-    const lsvRules = await ruleRagulationLSVModel.aggregate(aggregation);
+    let lsvRules = await ruleRagulationLSVModel.aggregate(aggregation);
+
+    if (
+      !lsvRules.length ||
+      (lsvRules[0].sections == null && lsvRules[0].guidelines == null)
+    ) {
+      aggregation = [
+        { $match: { isSuperAdmin: true } },
+        { $sort: { createdAt: -1 } },
+        { $limit: 1 },
+      ];
+      lsvRules = await goodLSVRuleModel.aggregate(aggregation);
+    }
 
     logger.info("LSV rules found:", lsvRules.length);
 
