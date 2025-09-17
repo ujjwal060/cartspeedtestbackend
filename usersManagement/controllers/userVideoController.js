@@ -555,7 +555,7 @@ const getSaftyVideo = async (req, res) => {
             }
         });
 
-        if (!nearbyLocations || nearbyLocations.length===0) {
+        if (!nearbyLocations || nearbyLocations.length === 0) {
             logger.info('No location-based video found, checking super admin video...');
             const superAdminVideo = await safityVideo.findOne({
                 isSuperAdmin: true,
@@ -579,8 +579,21 @@ const getSaftyVideo = async (req, res) => {
         const locationIds = [nearbyLocations._id];
         let aggregation = await saftyVideoAggregation(locationIds, nearbyLocations);
 
-        const videos = await safityVideo.aggregate(aggregation);
+        let videos = await safityVideo.aggregate(aggregation);
+        if (!videos || videos.length === 0) {
+            videos = await safityVideo.findOne({
+                isSuperAdmin: true,
+                isActive: true
+            }).select('_id title description durationTime url');
+        }
         logger.info('Safety videos found:', videos.length);
+
+        if (!videos || videos.length === 0) {
+            return res.status(404).json({
+                status: 404,
+                message: ['No safety videos found for nearby locations'],
+            });
+        }
 
         return res.json({
             status: 200,
