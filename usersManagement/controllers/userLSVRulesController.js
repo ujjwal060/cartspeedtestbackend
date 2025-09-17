@@ -25,6 +25,7 @@ const getGLSVRule = async (req, res) => {
     logger.info("User Coordinates:", userCoordinates);
 
     const nearbyLocations = await Location.findOne({
+      role: "admin",
       geometry: {
         $geoIntersects: {
           $geometry: {
@@ -240,6 +241,7 @@ const getRRLSVRule = async (req, res) => {
     logger.info("User Coordinates:", userCoordinates);
 
     const nearbyLocations = await Location.findOne({
+      role: "admin",
       geometry: {
         $geoIntersects: {
           $geometry: {
@@ -252,7 +254,6 @@ const getRRLSVRule = async (req, res) => {
 
     let aggregation;
     if (!nearbyLocations) {
-      // Location not found, get isSuperAdmin: true LSV rules
       aggregation = [
         {
           $match: {
@@ -269,8 +270,6 @@ const getRRLSVRule = async (req, res) => {
     } else {
       aggregation = await filterAggregation(nearbyLocations);
     }
-
-    // const locationIds = nearbyLocations.map(loc => loc._id);
 
     // let aggregation = await filterAggregationRRLSV(nearbyLocations);
 

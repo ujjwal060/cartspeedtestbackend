@@ -544,6 +544,7 @@ const getSaftyVideo = async (req, res) => {
         logger.info('User Coordinates:', userCoordinates);
 
         const nearbyLocations = await location.findOne({
+            role: "admin",
             geometry: {
                 $geoIntersects: {
                     $geometry: {
