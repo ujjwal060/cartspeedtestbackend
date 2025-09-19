@@ -585,7 +585,7 @@ const getAllAdmins = async (req, res) => {
     if (filters?.mobile) {
       aggregation.push({
         $match: {
-          email: filters?.email,
+          email: filters?.mobile,
         },
       });
     }
