@@ -196,7 +196,7 @@ const loginUser = async (req, res) => {
     try {
         const config = await loadConfig();
 
-        const { email, mobile, password } = req.body;
+        const { email, mobile, password,deviceToken } = req.body;
 
         logger.info("Login request received", { email, mobile });
 
@@ -269,6 +269,7 @@ const loginUser = async (req, res) => {
         );
 
         user.refreshToken = refreshToken;
+        user.deviceToken = deviceToken;
         await user.save();
 
         logger.info("User logged in successfully", { userId: user._id });
