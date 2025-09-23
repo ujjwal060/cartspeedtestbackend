@@ -54,6 +54,9 @@ const loginValidationSchema = Joi.object({
         'string.max': 'Password cannot exceed 128 characters.',
         'any.required': 'Password is required.',
     }),
+    deviceToken: Joi.string().optional().allow('').messages({
+        'string.base': 'Device token must be a string.',
+    }),
 }).xor('email', 'mobile');
 
 const setPasswordValidationSchema = Joi.object({
