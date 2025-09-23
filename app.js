@@ -1,4 +1,5 @@
 import express from 'express';
+import './utils/cronJob.js';
 import fileUpload from 'express-fileupload';
 import cors from 'cors';
 import { loadConfig } from './config/loadConfig.js';

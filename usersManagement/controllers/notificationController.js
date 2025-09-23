@@ -1,12 +1,37 @@
+import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
 import admin from 'firebase-admin';
 import Notification from '../../models/notificationModel.js';
 import fs from "fs";
 
-const serviceAccount = JSON.parse(fs.readFileSync(new URL("../../firebase-service-account.json", import.meta.url)));
+const secretName = 'cartfirebase';
+const client = new SecretsManagerClient({ region: "us-east-1" });
 
-admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-});
+const getFirebaseConfig = async () => {
+  try {
+    const command = new GetSecretValueCommand({ SecretId: secretName });
+    const response = await client.send(command);
+
+    if ('SecretString' in response) {
+      return JSON.parse(response.SecretString);
+    } else {
+      const buff = Buffer.from(response.SecretBinary, 'base64');
+      return JSON.parse(buff.toString('ascii'));
+    }
+  } catch (err) {
+    console.error("Error fetching Firebase secret:", err);
+    throw err;
+  }
+};
+
+const initFirebase = async () => {
+  if (!admin.apps.length) {
+    const serviceAccount = await getFirebaseConfig();
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+    console.log("✅ Firebase initialized with AWS secret");
+  }
+};
 
 const createNotification = async (req, res) => {
     try {
@@ -61,6 +86,7 @@ const deleteNotification = async (req, res) => {
 
 const notification = async (userId, title, body, deviceToken) => {
     try {
+        await initFirebase();
         const message = {
             notification: {
                 title: title,
@@ -71,7 +97,7 @@ const notification = async (userId, title, body, deviceToken) => {
 
         const newUser = new Notification({
             userId,
-            body,
+            message:body,
             title,
         });
         await newUser.save();
@@ -80,7 +106,7 @@ const notification = async (userId, title, body, deviceToken) => {
                 console.log('Successfully sent message:', response);
             })
             .catch((error) => {
-                console.log('Error sending message:', error);
+                console.log('Error sending message:', error.message);
             });
     } catch (error) {
        console.error("❌ Notification error:", error.message);

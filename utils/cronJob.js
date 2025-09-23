@@ -3,22 +3,26 @@ import { notification } from '../usersManagement/controllers/notificationControl
 import certificateModel from '../models/CertificateModel.js';
 import userModel from '../models/userModel.js';
 
-cron.schedule('0 0 * * *', async () => {
+cron.schedule('0 2 * * *', async () => {
     try {
-        // const today = new Date();
-        // const next7days = new Date();
-        // next7days.setDate(today.getDate() + 7);
+        const today = new Date();
 
-        const expiringCertificates = await certificateModel.find({
-            // expiryDate: { $lte: next7days }
-        }).populate("userId");
+        const certificates = await certificateModel.find({
+            $expr: {
+                $and: [
+                    { $eq: [{ $year: "$validUntil" }, today.getFullYear()] },
+                    { $eq: [{ $month: "$validUntil" }, today.getMonth() + 1] },
+                    { $eq: [{ $dayOfMonth: "$validUntil" }, today.getDate()] }
+                ]
+            }
+        }).populate("userId").populate("locationId");
 
-        for (const cert of expiringCertificates) {
-            if (cert.userId?.deviceToken) {
+        for (const cert of certificates) {
+            if (cert?.userId?.deviceToken) {
                 await notification(
                     cert.userId._id,
                     "Certificate Expiry Alert",
-                    `Your certificate "${cert.name}" will expire on ${cert.expiryDate.toDateString()}`,
+                    `Your certificate "${cert.certificateName}" at "${cert?.locationId?.name}" will expire today`,
                     cert.userId.deviceToken
                 );
             }
