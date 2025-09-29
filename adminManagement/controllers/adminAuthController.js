@@ -7,6 +7,10 @@ import { hashPassword } from "../../utils/passwordUtils.js";
 import { generateOTP, sendEmail } from "../../utils/otpUtils.js";
 import { emailTamplates } from "../../utils/emailTemplate.js";
 import locationModel from "../../models/locationModel.js";
+import glsvruleModel from "../../models/goodLSVRulesModel.js";
+import ruleandragulationModel from "../../models/ruleAndRegulationLSVModel.js";
+import safetyvideoModel from "../../models/saftyVideosModel.js";
+import certificateModel from "../../models/CertificateModel.js";
 import { loadConfig } from "../../config/loadConfig.js";
 
 const adminRegister = async (req, res) => {
@@ -661,8 +665,19 @@ const deleteAdmin = async (req, res) => {
     }
 
     if (admin.location) {
-      await locationModel.deleteOne({ _id: admin.location });
-      logger.info("Associated location deleted", { locationId: admin.location });
+      const locationId = admin.location;
+
+      await Promise.all([
+        glsvruleModel.deleteMany({ locationId: locationId, adminId: adminId }),
+        ruleandragulationModel.deleteMany({ locationId: locationId, adminId: adminId }),
+        safetyvideoModel.deleteMany({ locationId: locationId, adminId: adminId }),
+        // certificateModel.deleteMany({ location: locationId }),
+      ]);
+
+      logger.info("Associated documents deleted", { locationId });
+
+      await locationModel.deleteOne({ _id: locationId });
+      logger.info("Location deleted", { locationId });
     }
 
     await adminModel.deleteOne({ _id: adminId });
