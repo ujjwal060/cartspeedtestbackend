@@ -14,7 +14,8 @@ import {
     setPassword,
     getProfileById,
     toggleAdminStatus,
-    getAllAdmins
+    getAllAdmins,
+    deleteAdmin
 } from '../controllers/adminAuthController.js';
 import { verifyTokenMiddleware } from '../adminmiddleware/adminAuthmiddleware.js';
 
@@ -28,6 +29,7 @@ router.post('/setPass', validateRequest(setPasswordValidationSchema), setPasswor
 router.get('/profile/:id',verifyTokenMiddleware, getProfileById);
 router.put('/status/:adminId',verifyTokenMiddleware,toggleAdminStatus);
 router.post('/getAllAdmins',verifyTokenMiddleware,getAllAdmins);
+router.delete('/deleteAdmin/:adminId',verifyTokenMiddleware,deleteAdmin);
 
 
 export default router;

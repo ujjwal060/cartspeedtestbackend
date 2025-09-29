@@ -460,7 +460,7 @@ const checkAndSaveLocation = async ({
       };
     }
 
-    const existingLocation = await locationModel.findOne({ zipCode:zipCode, role: "admin" });
+    const existingLocation = await locationModel.findOne({ zipCode: zipCode, role: "admin" });
     if (existingLocation) {
       return {
         success: false,
@@ -646,6 +646,41 @@ const getAllAdmins = async (req, res) => {
   }
 };
 
+const deleteAdmin = async (req, res) => {
+  try {
+    const { adminId } = req.params;
+
+    logger.info("Request received to delete admin", { adminId });
+    const admin = await adminModel.findById(adminId);
+    if (!admin) {
+      logger.warn("Admin not found while attempting to delete", { adminId });
+      return res.status(404).json({
+        status: 404,
+        message: ["Admin not found"],
+      });
+    }
+
+    if (admin.location) {
+      await locationModel.deleteOne({ _id: admin.location });
+      logger.info("Associated location deleted", { locationId: admin.location });
+    }
+
+    await adminModel.deleteOne({ _id: adminId });
+    logger.info("Admin deleted successfully", { adminId });
+
+    return res.status(200).json({
+      status: 200,
+      message: ["Admin deleted successfully"],
+    });
+  } catch (error) {
+    logger.error("Error deleting admin", { error: error.message });
+    return res.status(500).json({
+      status: 500,
+      message: [error.message],
+    });
+  }
+}
+
 export {
   adminRegister,
   login,
@@ -655,4 +690,5 @@ export {
   getProfileById,
   toggleAdminStatus,
   getAllAdmins,
+  deleteAdmin
 };
