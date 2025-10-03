@@ -301,5 +301,27 @@ const getLatestCertificates = async (req, res) => {
   }
 };
 
+const deleteCertificate = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await CertificateModel.findByIdAndDelete(id);
+        if (!result) {
+            return res.status(404).json({
+                status: 404,
+                message: ["Certificate not found"],
+            });
+        }
+        return res.status(200).json({
+            status: 200,
+            message: ["Certificate deleted successfully"],
+        });
+    } catch (error) {
+        logger.error("Error in deleteCertificate", error);
+        return res.status(500).json({
+            status: 500,
+            message: [error.message],
+        });
+    }
+};
 
-export { getAllCertificateAdmin, getLatestCertificates };
+export { getAllCertificateAdmin, getLatestCertificates, deleteCertificate };
