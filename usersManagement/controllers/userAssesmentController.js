@@ -22,6 +22,7 @@ const getAssesmentForUser = async (req, res) => {
     });
 
     const userCoordinates = userLocationData.coordinates.coordinates;
+    
     const nearbyLocations = await LocationModel.findOne({
       role: "admin",
       geometry: {
@@ -40,6 +41,22 @@ const getAssesmentForUser = async (req, res) => {
     if (nearbyLocations) {
       selectedLocationId = nearbyLocations._id;
       locationRole = "admin";
+      
+      const existingAdminTest = await UserTestAttempts.findOne({
+        userId,
+        locationId: selectedLocationId,
+        userPhysicalLocationId: userLocationData._id,
+      });
+
+      if (existingAdminTest) {
+        const lastAttempt = existingAdminTest.attempts?.[existingAdminTest.attempts.length - 1];
+        if (lastAttempt?.isPassed) {
+          return res.status(403).json({
+            status: 403,
+            message: ["You have already passed the admin assessment at this location."],
+          });
+        }
+      }
     } else {
       const superAdminLocation = await LocationModel.findOne({ role: "superAdmin" });
       if (!superAdminLocation) {
@@ -49,21 +66,21 @@ const getAssesmentForUser = async (req, res) => {
         });
       }
       selectedLocationId = superAdminLocation._id;
-    }
+      
+      const existingSuperAdminTest = await UserTestAttempts.findOne({
+        userId,
+        locationId: selectedLocationId,
+        userPhysicalLocationId: userLocationData._id,
+      });
 
-    const existingTest = await UserTestAttempts.findOne({
-      userId,
-      locationId: selectedLocationId,
-      // isSectionCompleted: true,
-    });
-
-    if (existingTest) {
-      const lastAttempt = existingTest.attempts?.[existingTest.attempts.length - 1];
-      if (lastAttempt?.isPassed) {
-        return res.status(403).json({
-          status: 403,
-          message: ["You have already passed this assessment."],
-        });
+      if (existingSuperAdminTest) {
+        const lastAttempt = existingSuperAdminTest.attempts?.[existingSuperAdminTest.attempts.length - 1];
+        if (lastAttempt?.isPassed) {
+          return res.status(403).json({
+            status: 403,
+            message: ["You have already passed the superadmin assessment from this location. You can take the test again only from a different location."],
+          });
+        }
       }
     }
 
@@ -75,14 +92,30 @@ const getAssesmentForUser = async (req, res) => {
 
     if (questions.length === 0 && locationRole === "admin") {
       const superAdminLocation = await LocationModel.findOne({ role: "superAdmin" });
-      selectedLocationId = superAdminLocation._id;
+      const superAdminLocationId = superAdminLocation._id;
+      
+      const existingSuperAdminTest = await UserTestAttempts.findOne({
+        userId,
+        locationId: superAdminLocationId,
+        userPhysicalLocationId: userLocationData._id,
+      });
 
+      if (existingSuperAdminTest) {
+        const lastAttempt = existingSuperAdminTest.attempts?.[existingSuperAdminTest.attempts.length - 1];
+        if (lastAttempt?.isPassed) {
+          return res.status(403).json({
+            status: 403,
+            message: ["You have already passed the superadmin assessment from this location. You can take the test again only from a different location."],
+          });
+        }
+      }
+      
+      selectedLocationId = superAdminLocationId;
       questions = await QuestionModel.find({
         locationId: selectedLocationId,
       })
         .limit(10)
         .lean();
-
       isSuperAdmin = true;
     }
 
@@ -130,6 +163,18 @@ const submitTestAttempt = async (req, res) => {
       });
     }
 
+    const userLocationData = await userLocationModel.findOne({
+      userId: new ObjectId(userId),
+      isCurrent: true,
+    });
+
+    if (!userLocationData) {
+      return res.status(400).json({
+        status: 400,
+        message: ["User location not found. Please update your location first."],
+      });
+    }
+
     const questionIds = questions.map((q) => q.questionId);
     const correctQuestions = await QuestionModel.find({
       _id: { $in: questionIds },
@@ -170,12 +215,14 @@ const submitTestAttempt = async (req, res) => {
     let userTest = await UserTestAttempts.findOne({
       userId,
       locationId,
+      userPhysicalLocationId: userLocationData._id,
     });
 
     if (!userTest) {
       userTest = new UserTestAttempts({
         userId,
         locationId,
+        userPhysicalLocationId: userLocationData._id,
         attempts: [],
       });
     }
@@ -216,7 +263,11 @@ const submitTestAttempt = async (req, res) => {
 
     let passedAttemptDetails = [];
     if (isPassed) {
-      const populated = await UserTestAttempts.findOne({ userId, locationId })
+      const populated = await UserTestAttempts.findOne({ 
+        userId, 
+        locationId, 
+        userPhysicalLocationId: userLocationData._id 
+      })
         .populate('attempts.questions.questionId', 'question options')
         .lean();
 

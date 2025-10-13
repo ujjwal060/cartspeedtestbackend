@@ -10,6 +10,11 @@ const userTestAttemptsSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     required: true
   },
+  userPhysicalLocationId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'UserLocation',
+    required: true
+  },
   attempts: [
     {
       attemptNumber: Number,
@@ -58,7 +63,7 @@ const userTestAttemptsSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// userTestAttemptsSchema.index({ userId: 1, locationId: 1, sectionId: 1 });
+userTestAttemptsSchema.index({ userId: 1, locationId: 1, userPhysicalLocationId: 1 });
 
 const UserTestAttempts = mongoose.model('UserTestAttempts', userTestAttemptsSchema);
 export default UserTestAttempts;
