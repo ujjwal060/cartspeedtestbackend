@@ -19,28 +19,6 @@ const registerUser = async (req, res) => {
 
         const existingUser = await UserModel.findOne({ $or: [{ email }, { mobile }] });
 
-        // if (existingUser) {
-        //     if (existingUser.email === email && existingUser.mobile === mobile) {
-        //         logger.warn("Attempt to register with existing email and mobile", { email, mobile });
-        //         return res.status(400).json({
-        //             status: 400,
-        //             message: ['Email and mobile are already registered. Please use a different email or mobile.'],
-        //         });
-        //     } else if (existingUser.email === email) {
-        //         logger.warn("Attempt to register with existing email", { email });
-        //         return res.status(400).json({
-        //             status: 400,
-        //             message: ['Email is already registered. Please use a different email.'],
-        //         });
-        //     } else if (existingUser.mobile === mobile) {
-        //         logger.warn("Attempt to register with existing mobile", { mobile });
-        //         return res.status(400).json({
-        //             status: 400,
-        //             message: ['Mobile number is already registered. Please use a different mobile number.'],
-        //         });
-        //     }
-        // }
-
         if (existingUser) {
             if (existingUser.isVerified) {
                 if (existingUser.email === email && existingUser.mobile === mobile) {
